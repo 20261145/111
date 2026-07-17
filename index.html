@@ -613,10 +613,7 @@
 <div class="typing" id="typing-indicator">
   <div class="typing-dots"><span></span><span></span><span></span></div>
 </div>
-<div class="search-indicator" id="search-indicator" style="display:none">
-  <span class="search-icon">🔍</span>
-  <span class="search-text">正在搜索网络...</span>
-</div>
+
 
 <div class="quick-actions" id="quick-actions"></div>
 
@@ -1219,22 +1216,9 @@ function buildSearchContext(results) {
   return ctx;
 }
 
-// 显示/隐藏搜索中状态
-let _searchIndicatorEl = null;
-function getSearchIndicator() {
-  if (!_searchIndicatorEl) {
-    _searchIndicatorEl = document.getElementById('search-indicator');
-  }
-  return _searchIndicatorEl;
-}
-function showSearchingIndicator() {
-  const el = getSearchIndicator();
-  if (el) { el.style.display = ''; el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
-}
-function hideSearchingIndicator() {
-  const el = getSearchIndicator();
-  if (el) el.style.display = 'none';
-}
+// 搜索中状态（现在用消息气泡显示，这里只做占位）
+function showSearchingIndicator() {}
+function hideSearchingIndicator() {}
 
 // ====================== AI 聊天 ======================
 // ====================== AI 聊天 ======================
@@ -1250,15 +1234,14 @@ async function aiChat(userText) {
 
   // AI 发出了搜索信号？拦截 → 搜索 → 把结果喂给 AI → 生成最终回复
   if (reply.includes(SEARCH_SIGNAL)) {
-    const parts = reply.split(SEARCH_SIGNAL);
-    const prefixText = (parts[0] || '').trim();
     // 提取搜索词：取信号后第一行非空文字
+    const parts = reply.split(SEARCH_SIGNAL);
     const signalRest = parts[1] || '';
     const queryLine = (signalRest.split('\n')[0] || signalRest.split('.')[0] || '').replace(/[。.，,?？!！\s]/g, '').trim();
     const searchQuery = queryLine.length > 2 ? queryLine : userText;
 
-    if (prefixText) addMsg('ai', prefixText + '\n\n🔍 正在搜索...');
-    else addMsg('ai', '🔍 我来帮你查一下...');
+    // 显示搜索中状态（在聊天区域）
+    addMsg('ai', '🔍 正在搜索网络...');
     showSearchingIndicator();
 
     const results = await webSearch(searchQuery);
@@ -1275,7 +1258,7 @@ async function aiChat(userText) {
       ...STATE.history.slice(-10),
       { role: 'user', content: userText },
       { role: 'assistant', content: reply },
-      { role: 'user', content: '请根据以下网络搜索结果回答我刚才的问题：' + searchCtx }
+      { role: 'user', content: '根据以下网络搜索结果回答：' + searchCtx }
     ];
     reply = await generateWithRetry(finalMessages);
   }
@@ -1302,6 +1285,8 @@ function buildSystemPrompt() {
 
 搜索方法：在你的回复末尾追加一行：
 __SEARCH:（用一句话描述你要搜索的内容）
+
+重要：发出搜索信号后，**不要**在回复里说"请把搜索结果给我"之类的话，系统会自动处理，你只需要等待最终结果！
 
 例子：
 用户问："周杰伦最近在干什么？"
