@@ -1078,11 +1078,13 @@ function getFallbackStory(topic) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// Pollinations.ai 请求（带详细诊断）
+// Pollinations.ai 请求（带 CORS 代理回退）
 async function pollinationsRequest(messages, model, timeoutMs) {
   timeoutMs = timeoutMs || 45000;
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), timeoutMs);
+  
+  // 先尝试直接请求
   try {
     const res = await fetch('https://text.pollinations.ai/', {
       method: 'POST',
@@ -1096,16 +1098,39 @@ async function pollinationsRequest(messages, model, timeoutMs) {
     });
     const ct = res.headers.get('content-type') || '';
     const text = await res.text();
-    // 检测 Cloudflare 挑战页（响应是 HTML 而非文本/JSON）
+    // 检测 Cloudflare 挑战页
     if (!res.ok || ct.indexOf('html') >= 0 || (!ct && (text.includes('cloudflare') || text.includes('challenge') || text.includes('cf-')))) {
-      throw new Error('HTTP_' + res.status + ':cf_challenge:' + text.substring(0, 80));
+      throw new Error('HTTP_' + res.status + ':cf_challenge');
     }
     const parsed = parseAIResponse(text);
     if (!parsed || !parsed.trim()) throw new Error('空回复');
     return parsed;
-  } catch(e) {
-    console.error('[AI请求]', e.message.substring(0, 200));
-    throw e;
+  } catch (directErr) {
+    // 直接请求失败，尝试 CORS 代理
+    console.log('[AI] 直接请求失败，尝试代理...');
+    try {
+      const body = {
+        messages: messages,
+        model: model,
+        seed: Math.floor(Math.random() * 100000)
+      };
+      // 使用 allorigins 的 raw 模式（直接返回目标内容）
+      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://text.pollinations.ai/');
+      const res2 = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+      const text2 = await res2.text();
+      if (!res2.ok) throw new Error('PROXY_HTTP_' + res2.status);
+      const parsed2 = parseAIResponse(text2);
+      if (!parsed2 || !parsed2.trim()) throw new Error('代理空回复');
+      return parsed2;
+    } catch (proxyErr) {
+      console.error('[AI] 代理也失败:', proxyErr.message);
+      throw directErr; // 抛出原始错误
+    }
   } finally {
     clearTimeout(tid);
   }
