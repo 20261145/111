@@ -830,8 +830,8 @@ function showWelcome() {
 
 // ====================== 快捷语 ======================
 const QUICK = {
-  girl: ['给我讲个故事', '帮我出几道题', '今天心情有点down', '推荐一本书', '讲个笑话吧', '英语怎么学才好'],
-  boy: ['给我讲个故事', '帮我出几道题', '今天有点无聊', '推荐一本书', '讲个笑话吧', '英语怎么学才好']
+  girl: ['🌐 帮我搜索一个问题', '给我讲个故事', '帮我出几道题', '推荐一本书', '讲个笑话吧', '英语怎么学才好'],
+  boy: ['🌐 帮我搜索一个问题', '给我讲个故事', '帮我出几道题', '推荐一本书', '讲个笑话吧', '英语怎么学才好']
 };
 function buildQuick() {
   const qa = $('quick-actions');
@@ -1132,8 +1132,95 @@ function speakStory(lang) {
 window.addEventListener('beforeunload', () => window.speechSynthesis.cancel());
 window.speechSynthesis?.getVoices(); // 预加载语音列表
 
+// ====================== 网页搜索 ======================
+const SEARCH_TRIGGERS = ['搜一下', '搜索', '搜搜', '查一下', '查查', '网上查', '网上搜', '帮我搜', '帮我查',
+  '今天天气', '明天天气', '天气', '最新新闻', '最近新闻', '新闻',
+  '查一查', '找一下', '找找', '想知道'];
+const SEARCH_REGEX = /^[\uff00-￮]?搜(一下|索|搜)|^[\uff00-￮]?查(一下|查)?|^(帮我|我想)?(搜|查)(一下|一查)|今天天气|明天天气|天气预报|最新新闻|最近.*新闻/i;
+
+async function webSearch(query) {
+  const q = encodeURIComponent(query.trim());
+  const results = [];
+
+  // 方法1: allorigins CORS proxy → DuckDuckGo Lite HTML
+  try {
+    const proxyUrl = 'https://api.allorigins.win/get?url=' +
+      encodeURIComponent(`https://lite.duckduckgo.com/lite/?q=${q}&kl=wt-wt`);
+    const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+    const data = await resp.json();
+    if (data.contents) {
+      // 从HTML中提取搜索结果
+      const snippetRegex = /<a[^>]+class="result-link"[^>]*>([^<]+)<\/a>|<p[^>]*class="result-snippet"[^>]*>([^<]+)</gi;
+      const urlRegex = /href="(https?:[^"]+)"[^>]*class="result-link"/gi;
+      const urls = [];
+      let urlMatch;
+      while ((urlMatch = urlRegex.exec(data.contents)) !== null) urls.push(urlMatch[1]);
+      const snippets = [];
+      let snMatch;
+      while ((snMatch = snippetRegex.exec(data.contents)) !== null) {
+        const txt = (snMatch[1] || snMatch[2] || '').replace(/<[^>]+>/g, '').trim();
+        if (txt.length > 10) snippets.push(txt);
+      }
+      for (let i = 0; i < Math.min(5, Math.max(urls.length, snippets.length)); i++) {
+        const title = snippets[i]?.substring(0, 80) || '';
+        const url = urls[i] || '';
+        if (title) results.push({ title, url });
+      }
+    }
+  } catch (e) {
+    console.warn('allorigins search failed:', e.message);
+  }
+
+  // 方法2: DuckDuckGo Instant Answer API（返回JSON，无CORS问题）
+  if (results.length === 0) {
+    try {
+      const resp = await fetch(
+        `https://api.duckduckgo.com/?q=${q}&format=json&no_html=1&skip_disambig=1&t=h_&df=w`,
+        { signal: AbortSignal.timeout(6000) }
+      );
+      const data = await resp.json();
+      if (data.AbstractText) {
+        results.push({ title: data.Heading || '百科', content: data.AbstractText, url: data.AbstractURL || '' });
+      }
+      (data.RelatedTopics || []).slice(0, 4).forEach(t => {
+        if (t.Text) results.push({ title: t.Text.substring(0, 100), url: t.FirstURL || '' });
+      });
+    } catch (e) {
+      console.warn('DDG Instant Answer failed:', e.message);
+    }
+  }
+
+  return results;
+}
+
+function formatSearchResults(results) {
+  if (!results || results.length === 0) return null;
+  let text = '\n\n📡 我帮你搜了一下，这是找到的内容：\n\n';
+  results.slice(0, 5).forEach((r, i) => {
+    if (r.content) {
+      text += `${i + 1}. ${r.content}\n`;
+    } else {
+      text += `${i + 1}. ${r.title}\n   🔗 ${r.url}\n`;
+    }
+  });
+  text += '\n`（以上来自网络搜索）`';
+  return text;
+}
+
+function isSearchQuery(text) {
+  return SEARCH_REGEX.test(text) || SEARCH_TRIGGERS.some(t => text.includes(t));
+}
+
+// ====================== AI 聊天 ======================
 async function aiChat(userText) {
   const systemPrompt = buildSystemPrompt();
+
+  // 如果是搜索请求，先搜再聊
+  const isSearch = isSearchQuery(userText);
+  let searchInfo = '';
+  if (isSearch) {
+    searchInfo = formatSearchResults(await webSearch(userText)) || '';
+  }
 
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -1142,6 +1229,7 @@ async function aiChat(userText) {
   ];
 
   const reply = await generateWithRetry(messages);
+  return searchInfo + reply;
 
   STATE.history.push({ role: 'user', content: userText });
   STATE.history.push({ role: 'assistant', content: reply });
