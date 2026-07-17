@@ -1070,6 +1070,7 @@ const FALLBACK_STORIES = [
   },
 ];
 
+
 // 从预存故事库随机选一个（可按主题过滤）
 function getFallbackStory(topic) {
   let pool = FALLBACK_STORIES;
@@ -1080,33 +1081,27 @@ function getFallbackStory(topic) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// Cloudflare Workers AI 请求
+// Pollinations.ai 请求
 async function pollinationsRequest(messages, model, timeoutMs) {
   timeoutMs = timeoutMs || 45000;
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const url = `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/run/${model}`;
-    const res = await fetch(url, {
+    const res = await fetch('https://text.pollinations.ai/', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${CF_API_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: messages,
-        max_tokens: 1024
+        model: model,
+        seed: Math.floor(Math.random() * 100000)
       }),
       signal: controller.signal
     });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error('HTTP_' + res.status + ':' + errText.substring(0, 100));
-    }
-    const data = await res.json();
-    const content = data.result?.response || data.result?.choices?.[0]?.message?.content;
-    if (!content || !content.trim()) throw new Error('空回复');
-    return content.trim();
+    if (!res.ok) throw new Error('HTTP_' + res.status);
+    const text = await res.text();
+    const parsed = parseAIResponse(text);
+    if (!parsed || !parsed.trim()) throw new Error('空回复');
+    return parsed;
   } finally {
     clearTimeout(tid);
   }
@@ -1116,17 +1111,17 @@ async function pollinationsRequest(messages, model, timeoutMs) {
 async function generateWithRetry(messages) {
   let lastErr;
 
-  // 每个模型重试次数 + 递增等待时间
-  const delays = [3000, 6000, 10000];
+  // 每个模型重试次数 + 递增等待时间（加快重试以减少用户等待）
+  const delays = [2000, 4000, 8000];
 
   // 遍历每个模型
-  for (let mi = 0; mi < CF_MODELS.length; mi++) {
-    const model = CF_MODELS[mi];
+  for (let mi = 0; mi < AI_MODELS.length; mi++) {
+    const { name: model, timeout } = AI_MODELS[mi];
 
     // 每个模型最多试3次（给网络充足的恢复时间）
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        return await pollinationsRequest(messages, model, timeout);
+        return await pollinationsRequest(messages, model, 45000);
       } catch (e) {
         lastErr = e;
         const isLastModel = mi >= AI_MODELS.length - 1;
@@ -1149,6 +1144,9 @@ async function generateWithRetry(messages) {
           if (!isLastModel) {
             await new Promise(r => setTimeout(r, 5000));
           }
+          break;
+        } else {
+          // 空回复或其他错误：当前模型不可用，直接换
           break;
         }
       }
