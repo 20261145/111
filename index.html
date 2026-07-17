@@ -596,7 +596,7 @@
   <div class="title-area">
     <h1 id="header-name">伙伴AI · 一一</h1>
     <p id="header-status">在线 · 陪你聊聊天</p>
-  <span id="offline-badge" style="display:none;font-size:11px;background:#FFE0B2;color:#E65100;padding:2px 8px;border-radius:10px;flex-shrink:0">⚠️ 离线模式</span>
+  <span id="offline-badge" style="display:none;font-size:11px;background:#FFE0B2;color:#E65100;padding:2px 8px;border-radius:10px;flex-shrink:0">⚠️ 离线模式</span><!-- 已禁用 -->
   </div>
   <button class="header-btn" id="btn-refresh" title="重新回答">🔄</button>
   <button class="header-btn" id="btn-clear" title="清空聊天">🗑️</button>
@@ -1451,11 +1451,8 @@ async function sendMessage() {
     setOfflineMode(false); // 联网成功，关闭离线标识
   } catch (e) {
     console.error('AI error:', e);
-    // 自动降级到内置回复
-    const fb = localFallback(text);
-    // 显示离线提示气泡
-setOfflineMode(true);
-addMsg('ai', '<div class="offline-notice"><strong>⚠️ 当前是离线模式</strong><br>AI服务暂时连不上，这是本地自动回复，不是真AI哦～<br>联网后会自动恢复正常 ✨</div>', false);
+    // 直接显示错误，不兜底
+    addMsg('ai', '<div style="color:#ff6b6b"><strong>❌ AI请求失败</strong><br>' + escHtml(e.message || '未知错误') + '<br>请检查控制台(F12)获取详细信息</div>', false);
   } finally {
     setTyping(false);
     STATE.busy = false;
@@ -1463,12 +1460,11 @@ addMsg('ai', '<div class="offline-notice"><strong>⚠️ 当前是离线模式</
   }
 }
 
-// 显示/隐藏离线标识
+// 显示/隐藏离线标识（已禁用，保持在线状态）
 function setOfflineMode(on) {
-  const badge = document.getElementById('offline-badge');
+  // 禁用离线状态切换，始终显示在线
   const status = document.getElementById('header-status');
-  if (badge) badge.style.display = on ? '' : 'none';
-  if (status) status.textContent = on ? '离线 · 本地回复' : '在线 · 陪你聊聊天';
+  if (status) status.textContent = '在线 · 陪你聊聊天';
 }
 
 $('send-btn').onclick = sendMessage;
@@ -1645,8 +1641,7 @@ function init() {
   updateHeader();
   buildQuick();
 
-  // 静默检测网络（页面加载时先测一下 AI 是否通，
-  // 避免用户发消息等半天，才发现是网络问题）
+  // 静默检测网络（仅打印日志，不切换离线状态）
   (async () => {
     try {
       const controller = new AbortController();
@@ -1659,14 +1654,11 @@ function init() {
       });
       clearTimeout(tid);
       if (res.ok) {
-        setOfflineMode(false);
         console.log('[网络检测] AI 服务正常连接');
       } else {
-        setOfflineMode(true);
         console.warn('[网络检测] AI 返回错误:', res.status);
       }
     } catch(e) {
-      setOfflineMode(true);
       console.warn('[网络检测] AI 连不上:', e.message.substring(0, 100));
     }
   })();
