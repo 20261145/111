@@ -793,7 +793,19 @@ $('story-close').onclick = () => closeModal('story');
 $('settings-close').onclick = () => closeModal('settings');
 $('settings-clear').onclick = () => {
   if (!confirm('确定清空所有聊天记录？')) return;
-  STATE.history = [];
+  // 从localStorage恢复历史记录
+  try {
+    const saved = localStorage.getItem('bdy_history');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        STATE.history = parsed;
+        // 渲染恢复的历史
+        parsed.forEach(msg => addMsg(msg.role, msg.content, false));
+        if (parsed.length > 0) scrollToBottom();
+      }
+    }
+  } catch(e) { console.warn('历史记录恢复失败:', e); }
   $('chat-container').innerHTML = '';
   showWelcome();
   closeModal('settings');
@@ -1220,13 +1232,30 @@ function buildSearchContext(results) {
 function showSearchingIndicator() {}
 function hideSearchingIndicator() {}
 
+
+function saveHistory() {
+  try {
+    // 超过500条时截断最老的，保持localStorage不爆
+    const toSave = STATE.history.length > 1000
+      ? STATE.history.slice(-1000)
+      : STATE.history;
+    localStorage.setItem('bdy_history', JSON.stringify(toSave));
+  } catch(e) {
+    // localStorage满了，删最老的再试
+    try {
+      STATE.history = STATE.history.slice(-200);
+      localStorage.setItem('bdy_history', JSON.stringify(STATE.history));
+    } catch(e2) { console.warn('历史记录保存失败:', e2); }
+  }
+}
+
 // ====================== AI 聊天 ======================
 // ====================== AI 聊天 ======================
 async function aiChat(userText) {
   const systemPrompt = buildSystemPrompt();
   const messages = [
     { role: 'system', content: systemPrompt },
-    ...STATE.history.slice(-100),
+    ...STATE.history.slice(-200),
     { role: 'user', content: userText }
   ];
 
@@ -1255,7 +1284,7 @@ async function aiChat(userText) {
     const searchCtx = buildSearchContext(results);
     const finalMessages = [
       { role: 'system', content: systemPrompt },
-      ...STATE.history.slice(-100),
+      ...STATE.history.slice(-200),
       { role: 'user', content: userText },
       { role: 'assistant', content: reply },
       { role: 'user', content: '根据以下网络搜索结果回答：' + searchCtx }
@@ -1265,11 +1294,12 @@ async function aiChat(userText) {
 
   STATE.history.push({ role: 'user', content: userText });
   STATE.history.push({ role: 'assistant', content: reply });
-  if (STATE.history.length > 200) STATE.history = STATE.history.slice(-200);
+  if (STATE.history.length > 1000) STATE.history = STATE.history.slice(-1000);
+  saveHistory(); // 持久化保存
 
   // 记忆快满了，提示用户
   const historyCount = STATE.history.length / 2;
-  if (historyCount >= 80) {
+  if (historyCount >= 400) {
     showToast('⚠️ 对话记忆快满了（' + historyCount + '条），继续聊会逐渐忘记之前的内容，可以清空聊天记录哦～');
   }
   return reply;
