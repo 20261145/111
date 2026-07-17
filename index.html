@@ -842,8 +842,19 @@ $('gender-select').querySelectorAll('.opt-btn').forEach(btn => {
 });
 $('grade-select').querySelectorAll('.opt-btn').forEach(btn => {
   btn.addEventListener('click', () => {
+    const oldGrade = STATE.grade;
     STATE.grade = btn.dataset.val;
     localStorage.setItem('bdy_grade', STATE.grade);
+    const gradeNames = { '1': '一年级', '2': '二年级', '3': '三年级', '4': '四年级', '5': '五年级', '6': '六年级', '7': '初中' };
+    showToast('已切换到' + (gradeNames[STATE.grade] || STATE.grade) + '模式 ✓');
+    // 如果年级变化了，插入一条系统消息提示AI风格切换
+    if (oldGrade !== STATE.grade && STATE.history.length > 0) {
+      STATE.history.push({
+        role: 'system',
+        content: `【系统提示：用户年级已从${gradeNames[oldGrade] || oldGrade}切换到${gradeNames[STATE.grade] || STATE.grade}，请调整回复风格适配新年级】`
+      });
+      saveHistory();
+    }
   });
 });
 $('theme-select').querySelectorAll('.opt-btn').forEach(btn => {
