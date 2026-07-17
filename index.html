@@ -878,10 +878,13 @@ $('grade-select').querySelectorAll('.opt-btn').forEach(btn => {
       updateHeader();
     } else if (STATE.grade === 'laoyue') {
       // 老岳模式：固定回复，不消耗token
+      $('gender-group').style.display = 'none';
       showToast('已切换到老岳模式 ✓（不消耗token）');
+      updateHeader();
     } else {
       $('gender-group').style.display = '';
       showToast('已切换到' + (gradeNames[STATE.grade] || STATE.grade) + '模式 ✓');
+      updateHeader();
     }
     // 如果年级变化了，插入一条系统消息提示AI风格切换
     if (oldGrade !== STATE.grade && STATE.history.length > 0) {
