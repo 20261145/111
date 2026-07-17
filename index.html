@@ -755,8 +755,8 @@ const STATE = {
 };
 
 // 角色名映射
-const NAMES = { girl: '一一', boy: '大航', neutral: '慧宝' };
-const EMOJIS = { girl: '👧', boy: '👦', neutral: '🤖' };
+const NAMES = { girl: '一一', boy: '大航', neutral: '慧宝', laoyue: '老岳' };
+const EMOJIS = { girl: '👧', boy: '👦', neutral: '🤖', laoyue: '😏' };
 
 // ====================== Utils ======================
 function $(id) { return document.getElementById(id); }
@@ -772,6 +772,12 @@ function autoResize(el) {
   el.style.height = Math.min(el.scrollHeight, 100) + 'px';
 }
 function updateHeader() {
+  // 老岳模式特殊处理
+  if (STATE.grade === 'laoyue') {
+    $('header-avatar').textContent = '😏';
+    $('header-name').textContent = '伙伴AI · 老岳';
+    return;
+  }
   $('header-avatar').textContent = EMOJIS[STATE.gender];
   $('header-name').textContent = '伙伴AI · ' + NAMES[STATE.gender];
   // 更新欢迎语中的名字
@@ -881,6 +887,18 @@ $('word-range').oninput = function() {
 
 // ====================== 欢迎语 ======================
 function showWelcome() {
+  // 老岳模式特殊欢迎语
+  if (STATE.grade === 'laoyue') {
+    const w = document.createElement('div');
+    w.className = 'welcome';
+    w.innerHTML = `
+      <span class="big-emoji">😏</span>
+      <h2>我是老岳</h2>
+      <p>问什么都行，我的回答永远只有一个...</p>
+    `;
+    $('chat-container').appendChild(w);
+    return;
+  }
   const w = document.createElement('div');
   w.className = 'welcome';
   w.innerHTML = `
