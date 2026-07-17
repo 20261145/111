@@ -297,6 +297,9 @@
       transition: all 0.2s;
       color: var(--text);
       font-family: inherit;
+      overflow: visible;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
     .opt-btn.selected {
       border-color: var(--primary);
@@ -304,7 +307,7 @@
       color: var(--primary);
       font-weight: 600;
     }
-    .opt-btn:active { transform: scale(0.95); }
+    .opt-btn:active { opacity: 0.75; }
     .range-wrap { display: flex; align-items: center; gap: 12px; }
     .range-wrap input[type="range"] {
       flex: 1;
@@ -333,6 +336,7 @@
       box-shadow: 0 4px 15px rgba(91,124,250,0.3);
       font-family: inherit;
       margin-top: 8px;
+      overflow: visible;
     }
     .action-btn:active { transform: scale(0.97); }
     .action-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
@@ -348,6 +352,7 @@
       cursor: pointer;
       margin-top: 8px;
       font-family: inherit;
+      overflow: visible;
     }
 
     /* ===== Story result ===== */
