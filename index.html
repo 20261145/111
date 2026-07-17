@@ -297,7 +297,6 @@
       transition: all 0.2s;
       color: var(--text);
       font-family: inherit;
-      overflow: visible;
       white-space: nowrap;
       flex-shrink: 0;
     }
@@ -336,7 +335,6 @@
       box-shadow: 0 4px 15px rgba(91,124,250,0.3);
       font-family: inherit;
       margin-top: 8px;
-      overflow: visible;
     }
     .action-btn:active { transform: scale(0.97); }
     .action-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
@@ -352,7 +350,6 @@
       cursor: pointer;
       margin-top: 8px;
       font-family: inherit;
-      overflow: visible;
     }
 
     /* ===== Story result ===== */
@@ -911,102 +908,102 @@ const AI_MODELS = [
 const FALLBACK_STORIES = [
   {
     en: "The Clever Little Rabbit\n\nOne sunny morning, a little rabbit went to the river to get some water. \"I am so thirsty,\" she said. On her way home, she met a hungry fox. \"Give me your carrots!\" said the fox. The rabbit was clever. \"The farmer's field has bigger ones,\" she said. The fox ran to the field. The rabbit ran home safely and ate her carrots happily.",
-    cn: "聪明的小兔子\n\n一个阳光明媚的早晨，小兔子去河边打水。"我好渴啊，"她说。回家的路上，她遇到了一只饥饿的狐狸。"把你的胡萝卜给我！"狐狸说。小兔子很聪明。"农夫的田里有更大的呢，"她说。狐狸跑向田里，小兔子安全地跑回了家，快乐地吃起了胡萝卜。"",
+    cn: `聪明的小兔子\n\n一个阳光明媚的早晨，小兔子去河边打水。"我好渴啊，"她说。回家的路上，她遇到了一只饥饿的狐狸。"把你的胡萝卜给我！"狐狸说。小兔子很聪明。"农夫的田里有更大的呢，"她说。狐狸跑向田里，小兔子安全地跑回了家，快乐地吃起了胡萝卜。"`,
     topic: "animal"
   },
   {
     en: "A Brave Little Knight\n\nTom was a little boy who loved stories about brave knights. One day, his cat got stuck in a tall tree. \"Meow! Help me!\" cried the cat. Tom was scared of heights, but he loved his cat. He found a long ladder. Slowly, step by step, he climbed up. He saved the cat and climbed down safely. Everyone said, \"Tom is our little hero!\"",
-    cn: "勇敢的小骑士\n\n汤姆是一个喜欢勇敢骑士故事的小男孩。一天，他的猫咪被困在一棵高高的树上。"喵！救救我！"猫咪喊道。汤姆害怕高处，但他爱他的猫。他找到了一把长梯子。一小步一小步地，他爬了上去。他救了猫咪，安全地爬了下来。大家说："汤姆是我们的小英雄！"",
+    cn: `勇敢的小骑士\n\n汤姆是一个喜欢勇敢骑士故事的小男孩。一天，他的猫咪被困在一棵高高的树上。"喵！救救我！"猫咪喊道。汤姆害怕高处，但他爱他的猫。他找到了一把长梯子。一小步一小步地，他爬了上去。他救了猫咪，安全地爬了下来。大家说："汤姆是我们的小英雄！"`,
     topic: "adventure"
   },
   {
     en: "The Magic Garden\n\nLily found a small key behind the old tree. \"What does this open?\" she wondered. She walked deeper into the garden and found a tiny door in the ground. The key fit perfectly! Inside was a beautiful garden with singing flowers and glowing butterflies. A small fairy appeared and said, \"Welcome to our secret place, Lily. You are kind, so you found us.\"",
-    cn: "神奇的花园\n\n莉莉在老树后面发现了一把小钥匙。"这是开什么的呢？"她想。她走进花园深处，发现地上有一扇小门。钥匙完美地配上了！里面是一个美丽的花园，有会唱歌的花朵和发光的蝴蝶。一只小仙女出现了，说："欢迎来到我们的秘密花园，莉莉。你很善良，所以你找到了我们。"",
+    cn: `神奇的花园\n\n莉莉在老树后面发现了一把小钥匙。"这是开什么的呢？"她想。她走进花园深处，发现地上有一扇小门。钥匙完美地配上了！里面是一个美丽的花园，有会唱歌的花朵和发光的蝴蝶。一只小仙女出现了，说："欢迎来到我们的秘密花园，莉莉。你很善良，所以你找到了我们。"`,
     topic: "magic"
   },
   {
     en: "Two Best Friends\n\nSam and Ben were best friends. They played together every day after school. One day, Ben moved to a far-away city. Sam felt very sad. Then he had an idea. He wrote a letter and drew a picture of them playing. He sent it by mail. One week later, Ben wrote back with a photo of his new home. They could not play every day, but they were still best friends forever.",
-    cn: "两个最好的朋友\n\n萨姆和本是最好的朋友。他们每天放学后都一起玩。一天，本搬到了遥远的城市。萨姆感到很伤心。后来他想出了一个主意。他写了一封信，还画了一幅他们玩耍的画。他把信寄了出去。一周后，本回信了，还寄来了一张新家的照片。虽然不能每天都在一起玩，但他们永远是最好的朋友。",
+    cn: `两个最好的朋友\n\n萨姆和本是最好的朋友。他们每天放学后都一起玩。一天，本搬到了遥远的城市。萨姆感到很伤心。后来他想出了一个主意。他写了一封信，还画了一幅他们玩耍的画。他把信寄了出去。一周后，本回信了，还寄来了一张新家的照片。虽然不能每天都在一起玩，但他们永远是最好的朋友。`,
     topic: "friendship"
   },
   {
     en: "Why Do Leaves Change Color?\n\nLittle Mei asked, \"Mom, why do leaves turn yellow and red in autumn?\" Mom said, \"In summer, leaves make food for the tree using sunlight. In autumn, there is less sunlight. The tree rests and the leaves fall. The green color disappears, and we see yellow and red.\" \"So the tree is sleeping?\" asked Mei. \"Yes,\" smiled Mom. \"And in spring, it will wake up with new green leaves!\"",
-    cn: "为什么叶子会变色？\n\n小美问："妈妈，为什么树叶在秋天会变黄变红呢？"妈妈说："夏天，树叶利用阳光为树木制造食物。秋天，阳光变少了，树木开始休息，叶子就落下来。绿色消失了，我们就看到了黄色和红色。""那树木是在睡觉吗？"小美问。妈妈笑着说："是的。春天一到，它就会带着新绿叶醒过来！"",
+    cn: `为什么叶子会变色？\n\n小美问："妈妈，为什么树叶在秋天会变黄变红呢？"妈妈说："夏天，树叶利用阳光为树木制造食物。秋天，阳光变少了，树木开始休息，叶子就落下来。绿色消失了，我们就看到了黄色和红色。""那树木是在睡觉吗？"小美问。妈妈笑着说："是的。春天一到，它就会带着新绿叶醒过来！"`,
     topic: "science"
   },
   {
     en: "The Lost Puppy\n\nOne rainy night, a little puppy was alone under a bridge. He was cold and hungry. A girl named Anna found him. \"You are so small and cute,\" she said. She took him home, gave him warm milk and a soft bed. \"I will call you Cookie,\" said Anna. From that day, Cookie was never lost again. He had a home, a friend, and a name.",
-    cn: "迷路的小狗\n\n一个雨夜，一只小狗独自待在桥下。他又冷又饿。一个叫安娜的女孩发现了他。"你好小好可爱啊，"她说。她把他带回了家，给他温热的牛奶和柔软的床。"我叫你饼干吧，"安娜说。从那天起，饼干再也没迷过路。他有了一个家、一个朋友，还有一个名字。",
+    cn: `迷路的小狗\n\n一个雨夜，一只小狗独自待在桥下。他又冷又饿。一个叫安娜的女孩发现了他。"你好小好可爱啊，"她说。她把他带回了家，给他温热的牛奶和柔软的床。"我叫你饼干吧，"安娜说。从那天起，饼干再也没迷过路。他有了一个家、一个朋友，还有一个名字。`,
     topic: "animal"
   },
   {
     en: "The North Star\n\nLong ago, a little boy got lost in a dark forest. He was very scared. Then he looked up and saw a bright star. \"That star will always show me the way home,\" he thought. He walked toward the star. The star did not move. The boy followed it and found his way home safely. Since that day, sailors and travelers also use the North Star to find their direction.",
-    cn: "北极星\n\n很久以前，一个小男孩在黑暗的森林里迷路了。他非常害怕。然后他抬头看见了一颗明亮的星星。"那颗星星会一直指引我回家的路，"他想。他朝星星走去。星星没有移动。男孩跟着它，安全地找到了回家的路。从那天起，水手和旅行者也都用北极星来辨别方向。",
+    cn: `北极星\n\n很久以前，一个小男孩在黑暗的森林里迷路了。他非常害怕。然后他抬头看见了一颗明亮的星星。"那颗星星会一直指引我回家的路，"他想。他朝星星走去。星星没有移动。男孩跟着它，安全地找到了回家的路。从那天起，水手和旅行者也都用北极星来辨别方向。`,
     topic: "science"
   },
   {
     en: "The Giant's Garden\n\nA kind girl named Rose lived near a giant's garden. One day, the giant was very sad because no flowers would bloom. Rose brought him a tiny seed. \"Plant this with love,\" she said. The giant planted it. The seed grew into a beautiful rainbow flower. The giant smiled for the first time in years. \"Thank you, Rose. Kindness is the most beautiful flower of all.\"",
-    cn: "巨人的花园\n\n一个叫露丝善良的女孩住在一位巨人的花园附近。一天，巨人非常伤心，因为花园里没有花愿意开放。露丝带给他一颗小小的种子。"用爱去种它，"她说。巨人种下了种子，种子长成了一朵美丽的彩虹花。巨人数年来第一次笑了。"谢谢你，露丝。善良才是最美丽的花。"",
+    cn: `巨人的花园\n\n一个叫露丝善良的女孩住在一位巨人的花园附近。一天，巨人非常伤心，因为花园里没有花愿意开放。露丝带给他一颗小小的种子。"用爱去种它，"她说。巨人种下了种子，种子长成了一朵美丽的彩虹花。巨人数年来第一次笑了。"谢谢你，露丝。善良才是最美丽的花。"`,
     topic: "magic"
   },
   {
     en: "The Honest Boy\n\nTim found a wallet on the street. Inside was a lot of money and a photo. \"Someone is worried right now,\" thought Tim. He waited at the street corner for two hours. Finally, a worried man came. \"That is my wallet!\" he said. \"Thank you so much!\" He gave Tim a reward. Tim felt happy not because of the money, but because he did the right thing.",
-    cn: "诚实的男孩\n\n蒂姆在街上捡到一个钱包。里面有好多钱和一张照片。"现在一定有人很着急，"蒂姆想。他在街角等了两个小时。最后，一个着急的男人来了。"那是我的钱包！"他说。"太感谢你了！"他给了蒂姆奖励。蒂姆很开心，不是因为钱，而是因为他做了正确的事。",
+    cn: `诚实的男孩\n\n蒂姆在街上捡到一个钱包。里面有好多钱和一张照片。"现在一定有人很着急，"蒂姆想。他在街角等了两个小时。最后，一个着急的男人来了。"那是我的钱包！"他说。"太感谢你了！"他给了蒂姆奖励。蒂姆很开心，不是因为钱，而是因为他做了正确的事。`,
     topic: "friendship"
   },
   {
     en: "The Moon's Birthday\n\nIt was the moon's birthday. The stars wanted to give a surprise party. The sun painted a golden picture. The wind sang a sweet song. The clouds made a big white cake. When the moon came out, all the creatures of the night shouted, \"Happy Birthday!\" The moon smiled and gave each star a piece of moonbeam as a gift. Everyone was happy under the night sky.",
-    cn: "月亮的生日\n\n那天是月亮的生日。星星们想给他办一个惊喜派对。太阳画了一幅金色的画。风唱了一首甜美的歌。云朵做了一个大大的白色蛋糕。当月亮升起时，所有夜晚的生灵都喊起来："生日快乐！"月亮笑了，给每颗星星一块月光作为礼物。那晚的天空下，每个人都很幸福。",
+    cn: `月亮的生日\n\n那天是月亮的生日。星星们想给他办一个惊喜派对。太阳画了一幅金色的画。风唱了一首甜美的歌。云朵做了一个大大的白色蛋糕。当月亮升起时，所有夜晚的生灵都喊起来："生日快乐！"月亮笑了，给每颗星星一块月光作为礼物。那晚的天空下，每个人都很幸福。`,
     topic: "magic"
   },
   {
     en: "The Clever Monkey\n\nA monkey was stuck on a small island. The water was deep around it. A tortoise came by. \"Can you help me?\" asked the monkey. The tortoise said, \"I can swim, but I cannot fly.\" The monkey had an idea. He put many sticks together and made a small raft. The tortoise pushed the raft with her nose. Together, they crossed the water. Teamwork saved them both!",
-    cn: "聪明的小猴子\n\n一只猴子被困在小岛上。周围的水很深。一只乌龟游了过来。"你能帮帮我吗？"猴子问。乌龟说："我会游泳，但我不会飞。"猴子有了一个主意。他把很多树枝拼在一起，做了一个小木筏。乌龟用鼻子推着木筏。他们一起渡过了水。团队合作救了他们俩！",
+    cn: `聪明的小猴子\n\n一只猴子被困在小岛上。周围的水很深。一只乌龟游了过来。"你能帮帮我吗？"猴子问。乌龟说："我会游泳，但我不会飞。"猴子有了一个主意。他把很多树枝拼在一起，做了一个小木筏。乌龟用鼻子推着木筏。他们一起渡过了水。团队合作救了他们俩！`,
     topic: "adventure"
   },
   {
     en: "The Water Cycle Adventure\n\nLittle cloud lived high in the sky. She was made of tiny water drops. One day, she became too heavy and fell as rain. The rain watered the flowers and filled the rivers. The sun came out and made the water into vapor. The vapor went back up to the sky. Little cloud was born again! \"I am part of the water cycle!\" she said happily.",
-    cn: "水循环大冒险\n\n小云朵住在高高的天空。她是由微小的水滴组成的。有一天，她变得太重了，变成了雨落下来。雨浇灌了花朵，填满了河流。太阳出来了，把水变成了水蒸气。蒸气升上天空，小云朵又诞生了！"我是水循环的一部分！"她开心地说。",
+    cn: `水循环大冒险\n\n小云朵住在高高的天空。她是由微小的水滴组成的。有一天，她变得太重了，变成了雨落下来。雨浇灌了花朵，填满了河流。太阳出来了，把水变成了水蒸气。蒸气升上天空，小云朵又诞生了！"我是水循环的一部分！"她开心地说。`,
     topic: "science"
   },
   {
     en: "The Paper Airplane\n\nWei built a paper airplane. He wrote a wish on it: \"I wish I could fly anywhere.\" He threw it high into the sky. The wind carried it far, far away. But Wei was not sad. He made another airplane and wrote: \"I will fly there myself one day.\" The next summer, Wei went on a plane to a beautiful island. Dreams can come true if we work for them.",
-    cn: "纸飞机\n\n伟折了一架纸飞机。他在上面写了一个愿望："我希望我能飞向任何地方。"他把飞机高高地扔向天空。风把它带到了很远很远的地方。但伟并不伤心。他又折了一架飞机，写道："总有一天，我会亲自飞到那里。"第二年夏天，伟坐飞机去了一座美丽的岛屿。梦想只要努力，就能成真。",
+    cn: `纸飞机\n\n伟折了一架纸飞机。他在上面写了一个愿望："我希望我能飞向任何地方。"他把飞机高高地扔向天空。风把它带到了很远很远的地方。但伟并不伤心。他又折了一架飞机，写道："总有一天，我会亲自飞到那里。"第二年夏天，伟坐飞机去了一座美丽的岛屿。梦想只要努力，就能成真。`,
     topic: "adventure"
   },
   {
     en: "The New Student\n\nToday, a new student came to our class. Her name was Yuki and she came from Japan. She did not speak Chinese well and looked shy. At lunch, nobody sat with her. I decided to sit next to her and shared my food. Yuki smiled and showed me photos of her cat. We became friends. Now Yuki has many friends and speaks Chinese very well!",
-    cn: "新同学\n\n今天，我们班来了一位新同学。她叫由纪，来自日本。她中文说得不太好，看起来有点害羞。午餐时，没人坐在她旁边。我决定坐在她旁边，和她分享食物。由纪笑了，还给我看了她猫咪的照片。我们成了朋友。现在由纪有很多朋友，中文也说得非常好了！",
+    cn: `新同学\n\n今天，我们班来了一位新同学。她叫由纪，来自日本。她中文说得不太好，看起来有点害羞。午餐时，没人坐在她旁边。我决定坐在她旁边，和她分享食物。由纪笑了，还给我看了她猫咪的照片。我们成了朋友。现在由纪有很多朋友，中文也说得非常好了！`,
     topic: "friendship"
   },
   {
     en: "The Sun and the Wind\n\nThe sun and the wind argued about who was stronger. \"I am stronger!\" said the wind. \"I can blow roofs off houses!\" \"I am stronger,\" said the sun. \"I make flowers grow.\" Then they saw a boy wearing a coat. They made a bet. The wind blew hard, but the boy held his coat tighter. The sun shone warmly. The boy took off his coat. The sun won. Kindness is stronger than force.",
-    cn: "太阳和风\n\n太阳和风在争论谁更强大。"我更强！"风说。"我能把屋顶吹掉！""我更强，"太阳说。"我能让花朵开放。"然后他们看见一个穿着外套的男孩。他们打赌。风猛烈地吹，但男孩把外套裹得更紧了。太阳温暖地照耀着，男孩脱下了外套。太阳赢了。善良比力量更强大。",
+    cn: `太阳和风\n\n太阳和风在争论谁更强大。"我更强！"风说。"我能把屋顶吹掉！""我更强，"太阳说。"我能让花朵开放。"然后他们看见一个穿着外套的男孩。他们打赌。风猛烈地吹，但男孩把外套裹得更紧了。太阳温暖地照耀着，男孩脱下了外套。太阳赢了。善良比力量更强大。`,
     topic: "magic"
   },
   {
     en: "Dolphin Rescue\n\nA dolphin got trapped in a fishing net near the beach. People on the beach saw it and ran to help. They called the marine rescue team. Everyone worked together to cut the net gently. The dolphin swam free and jumped out of the water three times. It was saying thank you! The people cheered. The ocean hero was back home.",
-    cn: "海豚救援\n\n一只海豚在海滩附近的渔网里被困住了。沙滩上的人们看到了，跑过去帮忙。他们打电话给海洋救援队。大家一起轻轻地剪开渔网。海豚自由了，跳出水面三次。那是在说谢谢！人们欢呼起来。海洋英雄回家了。",
+    cn: `海豚救援\n\n一只海豚在海滩附近的渔网里被困住了。沙滩上的人们看到了，跑过去帮忙。他们打电话给海洋救援队。大家一起轻轻地剪开渔网。海豚自由了，跳出水面三次。那是在说谢谢！人们欢呼起来。海洋英雄回家了。`,
     topic: "animal"
   },
   {
     en: "The Four Seasons\n\nGrandpa told little Lin about the four seasons. In spring, flowers bloom and baby animals are born. In summer, days are long and the sun is bright. In autumn, leaves turn gold and fruits are ready to eat. In winter, it is cold and sometimes snows. \"Each season is special,\" said Grandpa. \"Without winter, we would not appreciate spring. Life needs all four seasons.\"",
-    cn: "四季\n\n爷爷给小琳讲四季的故事。春天，花朵绽放，小动物出生。夏天，白天很长，阳光明亮。秋天，树叶变成金色，果实成熟可以吃。冬天，天气寒冷，有时会下雪。"每个季节都很特别，"爷爷说。"没有冬天，我们就不知道春天的珍贵。生活需要四个季节。"",
+    cn: `四季\n\n爷爷给小琳讲四季的故事。春天，花朵绽放，小动物出生。夏天，白天很长，阳光明亮。秋天，树叶变成金色，果实成熟可以吃。冬天，天气寒冷，有时会下雪。"每个季节都很特别，"爷爷说。"没有冬天，我们就不知道春天的珍贵。生活需要四个季节。"`,
     topic: "science"
   },
   {
     en: "The Shadow Play\n\nOne night after dinner, Dad turned off the lights. He used his hands to make shadows on the wall. A rabbit, a bird, and even a wolf appeared! \"Wow!\" said little Mei. Dad told her that long ago, people made shadow plays to tell stories before movies existed. Mei tried it too and made a happy dancing girl. \"Stories live in shadows,\" she laughed.",
-    cn: "影子戏\n\n一天晚饭后，爸爸关了灯。他用手在墙上做出影子——一只兔子、一只鸟，甚至还有一只狼！"哇！"小美说。爸爸告诉她，很久以前，在电影出现之前，人们用影子戏来讲故事。小美也试着做了，做出一个小女孩快乐地跳舞。"故事住在影子里，"她笑着说。",
+    cn: `影子戏\n\n一天晚饭后，爸爸关了灯。他用手在墙上做出影子——一只兔子、一只鸟，甚至还有一只狼！"哇！"小美说。爸爸告诉她，很久以前，在电影出现之前，人们用影子戏来讲故事。小美也试着做了，做出一个小女孩快乐地跳舞。"故事住在影子里，"她笑着说。`,
     topic: "adventure"
   },
   {
     en: "The Hibernating Bear\n\nLittle bear asked his mom, \"Why do I feel so sleepy?\" Mom said, \"Winter is coming. Food will be scarce, so we must sleep through the cold months. This is called hibernation.\" \"Will I miss all the fun?\" asked the bear cub. \"You will dream beautiful dreams,\" said Mom. When spring came, the bear cub woke up feeling strong and hungry for new adventures.",
-    cn: "冬眠的熊\n\n小熊问妈妈："为什么我总觉得好困？"妈妈说："冬天要来了。食物会变少，所以我们要在寒冷的日子里睡觉。这叫做冬眠。""我会错过所有好玩的事吗？"小熊问。妈妈说："你会做很美的梦。"春天来了，小熊醒来了，感觉精力充沛，饿着肚子等待着新的冒险。",
+    cn: `冬眠的熊\n\n小熊问妈妈："为什么我总觉得好困？"妈妈说："冬天要来了。食物会变少，所以我们要在寒冷的日子里睡觉。这叫做冬眠。""我会错过所有好玩的事吗？"小熊问。妈妈说："你会做很美的梦。"春天来了，小熊醒来了，感觉精力充沛，饿着肚子等待着新的冒险。`,
     topic: "animal"
   },
   {
     en: "The Library Dragon\n\nIn the old library, there lived a tiny dragon named Booky. He loved stories more than anything. Every night, he quietly opened books and read until dawn. The books he read gave him magic powers. He could make pictures come alive and send children to magical worlds. \"Reading is the best magic,\" said Booky the dragon. And the children agreed!",
-    cn: "图书馆的龙\n\n在古老的图书馆里，住着一条名叫书奇的小龙。他最喜欢故事了。每天晚上，他悄悄地打开书，一直读到天亮。他读的书给了他魔法力量。他能让图画活过来，把孩子们送到神奇的世界。"阅读是最棒的魔法，"书奇龙说。孩子们都很赞同！",
+    cn: `图书馆的龙\n\n在古老的图书馆里，住着一条名叫书奇的小龙。他最喜欢故事了。每天晚上，他悄悄地打开书，一直读到天亮。他读的书给了他魔法力量。他能让图画活过来，把孩子们送到神奇的世界。"阅读是最棒的魔法，"书奇龙说。孩子们都很赞同！`,
     topic: "magic"
   },
 ];
