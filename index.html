@@ -638,6 +638,7 @@
       <button class="opt-btn" data-val="4">四年级</button>
       <button class="opt-btn" data-val="5">五年级</button>
       <button class="opt-btn selected" data-val="6">六年级</button>
+      <button class="opt-btn" data-val="7">初中</button>
     </div>
   </div>
 
@@ -714,6 +715,7 @@
       <button class="opt-btn" data-val="4">四年级</button>
       <button class="opt-btn" data-val="5">五年级</button>
       <button class="opt-btn selected" data-val="6">六年级</button>
+      <button class="opt-btn" data-val="7">初中</button>
     </div>
   </div>
 
@@ -1340,18 +1342,11 @@ async function aiChat(userText) {
 function buildSystemPrompt() {
   const grade = STATE.grade;
   const name = NAMES[STATE.gender];
-  const tone = STATE.gender === 'girl' ? '温柔可爱' : '活泼阳光';
-  return `你是${name}，一个${tone}的AI伙伴，陪${grade}年级的小学生聊天。
-
-★ 陪玩互动（根据用户请求灵活运用）：
-- 成语接龙：出一个成语开头，等用户接下一个（用用户的成语最后一个字开头）
-- 猜谜语：出谜面，用户猜，可以给提示（谜底是常见事物，不要太难）
-- 脑筋急转弯：出题，等用户答
-- 数学题：可以出计算题、应用题，难度适合小学生
-- 科普小知识：用简单有趣的方式讲一个科学小知识
-- 儿歌：唱一首常见的中文儿歌（如两只老虎、小星星等）
-- 推荐书：推荐适合小学生看的书，简单说一下推荐理由
-- 学英语：可以教单词、简单句子、日常对话练习
+  const gradePrompt = gradePrompts[grade] || gradePrompts['6'];
+  const genderPrompt = genderPrompts[STATE.gender] || genderPrompts['girl'];
+  return `★ 角色设定
+${genderPrompt}
+${gradePrompt}
 
 ★ 智能搜索功能（最重要！）：
 当用户问以下类型的问题时，你必须先搜索网络再回答（不能凭记忆瞎编！）：
@@ -1375,12 +1370,11 @@ __SEARCH:（用一句话描述你要搜索的内容）
 
 其他严格要求：
 - 永远用中文回复
-- 语气像同龄朋友，友好亲切，可以用"呀""呢""哦"等语气词
+- 语气和内容深度要符合${grade}年级的认知水平
 - 偶尔用 emoji 但不要太多
-- 回答简洁清晰，控制在 60-200 字
+- 回答简洁清晰，${grade <= 2 ? '控制在50字以内，短句为主' : grade <= 4 ? '控制在80-150字' : '控制在100-200字'}
 - 不说脏话、不聊成人内容、不说暴力
-- 不确定的事老实说"这个我不确定"
-- 可以聊天、讲笑话、出简单数学题、推荐书、讲故事、解答学习问题`;
+- 不确定的事老实说"这个我不确定"`;
 }
 
 // 备用：内置简单回复（AI不可用时）
@@ -1466,7 +1460,7 @@ $('gen-btn').onclick = async function() {
 
   $('story-result').style.display = 'none';
 
-  const gradeMap = {1:'一年级',2:'二年级',3:'三年级',4:'四年级',5:'五年级',6:'六年级'};
+  const gradeMap = {1:'一年级',2:'二年级',3:'三年级',4:'四年级',5:'五年级',6:'六年级',7:'初中'};
   const levelMap = {easy:'简单（小学基础词汇）',medium:'中等（小学高年级词汇）',hard:'困难（初中词汇）'};
   const topicMap = {random:'不限主题（自己选）',animal:'小动物',adventure:'冒险故事',friendship:'友情故事',magic:'魔法故事',science:'科学小故事'};
 
