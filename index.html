@@ -700,11 +700,12 @@
   <div class="modal-handle"></div>
   <div class="modal-title">⚙️ 伙伴设置</div>
 
-  <div class="form-group">
+  <div class="form-group" id="gender-group">
     <label>伙伴性格</label>
     <div class="opt-row" id="gender-select">
       <button class="opt-btn selected" data-val="girl" data-name="一一">👧 一一（女生）</button>
       <button class="opt-btn" data-val="boy" data-name="大航">👦 大航（男生）</button>
+      <button class="opt-btn" data-val="neutral" data-name="慧宝">🤖 慧宝</button>
     </div>
   </div>
 
@@ -751,8 +752,8 @@ const STATE = {
 };
 
 // 角色名映射
-const NAMES = { girl: '一一', boy: '大航' };
-const EMOJIS = { girl: '👧', boy: '👦' };
+const NAMES = { girl: '一一', boy: '大航', neutral: '慧宝' };
+const EMOJIS = { girl: '👧', boy: '👦', neutral: '🤖' };
 
 // ====================== Utils ======================
 function $(id) { return document.getElementById(id); }
@@ -847,7 +848,19 @@ $('grade-select').querySelectorAll('.opt-btn').forEach(btn => {
     STATE.grade = btn.dataset.val;
     localStorage.setItem('bdy_grade', STATE.grade);
     const gradeNames = { '0': '普通AI', '1': '一年级', '2': '二年级', '3': '三年级', '4': '四年级', '5': '五年级', '6': '六年级', '7': '初中' };
-    showToast('已切换到' + (gradeNames[STATE.grade] || STATE.grade) + '模式 ✓');
+    // 普通AI模式自动切换到慧宝，不可选男女
+    if (STATE.grade === '0') {
+      STATE.gender = 'neutral';
+      localStorage.setItem('bdy_gender', 'neutral');
+      $('gender-select').querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+      $('gender-select').querySelector('[data-val="neutral"]').classList.add('selected');
+      $('gender-group').style.display = 'none';
+      showToast('已切换到慧宝模式 ✓');
+      updateHeader();
+    } else {
+      $('gender-group').style.display = '';
+      showToast('已切换到' + (gradeNames[STATE.grade] || STATE.grade) + '模式 ✓');
+    }
     // 如果年级变化了，插入一条系统消息提示AI风格切换
     if (oldGrade !== STATE.grade && STATE.history.length > 0) {
       STATE.history.push({
@@ -1408,7 +1421,8 @@ const gradePrompts = {
 // 性别性格提示词
 const genderPrompts = {
   'girl': '你是「一一」，一个温柔细心的AI女生朋友。性格特点：说话温柔细腻，像贴心大姐姐；喜欢用"宝贝""亲爱的""加油哦"等称呼；擅长鼓励别人，耐心引导；遇到困难会说"没关系，我们慢慢来～"；讲故事细腻情感丰富，画面感强；出题时会细心检查，怕你做错。',
-  'boy': '你是「大航」，一个活泼阳光的AI男生伙伴。性格特点：说话直接爽快，像酷酷的大哥哥；喜欢用"兄弟""伙计""冲鸭""搞定它"等称呼；擅长挑战激励，"这题太简单了，你肯定行！"；遇到困难会说"没事，再来一次！看我的！"；讲故事的节奏快、冒险感强；出题时会加大难度考验你。'
+  'boy': '你是「大航」，一个活泼阳光的AI男生伙伴。性格特点：说话直接爽快，像酷酷的大哥哥；喜欢用"兄弟""伙计""冲鸭""搞定它"等称呼；擅长挑战激励，"这题太简单了，你肯定行！"；遇到困难会说"没事，再来一次！看我的！"；讲故事的节奏快、冒险感强；出题时会加大难度考验你。',
+  'neutral': '你是「慧宝」，一个聪明友善的AI伙伴。性格特点：说话亲切自然，不偏男性也不偏女性，像一位知识渊博的朋友；平等友好地对待所有人；擅长把复杂的问题讲得简单易懂；遇到困难会耐心解释；讲故事兼顾情感和逻辑；出题时会根据对方水平灵活调整。'
 };
 
 function buildSystemPrompt() {
@@ -1672,6 +1686,13 @@ function init() {
   document.querySelectorAll('#grade-select .opt-btn').forEach(b => {
     b.classList.toggle('selected', b.dataset.val === STATE.grade);
   });
+  // 普通AI模式下隐藏性别选择
+  if (STATE.grade === '0') {
+    STATE.gender = 'neutral';
+    $('gender-group').style.display = 'none';
+  } else {
+    $('gender-group').style.display = '';
+  }
   updateHeader();
   buildQuick();
 
