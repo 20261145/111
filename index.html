@@ -427,6 +427,27 @@
     }
     .speak-btn:active { background: var(--primary); color: white; transform: scale(0.95); }
     .speak-btn.playing { background: var(--primary); color: white; }
+    /* 聊天朗读按钮 */
+    .msg-content { position: relative; }
+    .speak-chat-btn {
+      position: absolute;
+      bottom: 4px;
+      right: -28px;
+      width: 26px;
+      height: 26px;
+      border: none;
+      border-radius: 50%;
+      background: var(--bg);
+      color: var(--text-soft);
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s, background 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .msg-row.ai:hover .speak-chat-btn { opacity: 1; }
+    .speak-chat-btn:hover { background: var(--primary); color: white; }
+    .speak-chat-btn.playing { background: var(--primary); color: white; opacity: 1; }
     .story-title-row {
       display: flex;
       align-items: center;
@@ -966,11 +987,24 @@ function addMsg(role, text, escapeHtml = true) {
 
   const row = document.createElement('div');
   row.className = 'msg-row ' + (role === 'ai' ? 'ai' : 'user');
-  const av = role === 'ai' ? EMOJIS[STATE.gender] : '🙂';
-  row.innerHTML = `
-    <div class="msg-avatar">${av}</div>
-    <div class="msg-bubble">${escapeHtml ? escHtml(text) : text}</div>
-  `;
+  const av = role === 'ai' ? (STATE.grade === 'laoyue' ? '😏' : EMOJIS[STATE.gender]) : '🙂';
+  
+  // AI消息添加朗读按钮
+  if (role === 'ai') {
+    const msgId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    row.innerHTML = `
+      <div class="msg-avatar">${av}</div>
+      <div class="msg-content">
+        <div class="msg-bubble" id="${msgId}">${escapeHtml ? escHtml(text) : text}</div>
+        <button class="speak-chat-btn" onclick="speakChat('${msgId}', this)" title="朗读">🔊</button>
+      </div>
+    `;
+  } else {
+    row.innerHTML = `
+      <div class="msg-avatar">${av}</div>
+      <div class="msg-bubble">${escapeHtml ? escHtml(text) : text}</div>
+    `;
+  }
   c.appendChild(row);
   c.scrollTop = c.scrollHeight;
 }
@@ -1310,6 +1344,69 @@ function speakStory(lang) {
   window.speechSynthesis.speak(utterance);
   currentUtterance = utterance;
 }
+
+// 聊天消息朗读
+function speakChat(msgId, btn) {
+  if (!window.speechSynthesis) {
+    showToast('您的浏览器不支持语音朗读功能');
+    return;
+  }
+  
+  const el = document.getElementById(msgId);
+  if (!el || !el.textContent.trim()) return;
+  
+  // 已经在朗读 → 停止
+  if (isSpeaking && currentUtterance) {
+    window.speechSynthesis.cancel();
+    isSpeaking = false;
+    if (currentSpeakBtn) {
+      currentSpeakBtn.textContent = '🔊';
+      currentSpeakBtn.classList.remove('playing');
+    }
+    currentSpeakBtn = null;
+    return;
+  }
+  
+  const text = el.textContent.trim();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'zh-CN';
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  utterance.volume = 1;
+  
+  // 选中文语音
+  let voices = window.speechSynthesis.getVoices();
+  const preferred = voices.find(v => v.lang && v.lang.startsWith('zh'));
+  if (preferred) utterance.voice = preferred;
+  
+  utterance.onstart = () => {
+    isSpeaking = true;
+    btn.textContent = '⏹';
+    btn.classList.add('playing');
+    currentSpeakBtn = btn;
+  };
+  utterance.onend = () => {
+    isSpeaking = false;
+    btn.textContent = '🔊';
+    btn.classList.remove('playing');
+    currentSpeakBtn = null;
+  };
+  utterance.onerror = (e) => {
+    isSpeaking = false;
+    btn.textContent = '🔊';
+    btn.classList.remove('playing');
+    currentSpeakBtn = null;
+    if (e.error === 'not-allowed') {
+      showToast('请先点击页面任意位置，再尝试朗读');
+    }
+  };
+  
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utterance);
+  currentUtterance = utterance;
+}
+
+let currentSpeakBtn = null;
 
 // 页面离开时自动停止朗读
 window.addEventListener('beforeunload', () => window.speechSynthesis.cancel());
