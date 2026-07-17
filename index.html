@@ -711,6 +711,7 @@
   <div class="form-group">
     <label>你的年级</label>
     <div class="opt-row" id="grade-select">
+      <button class="opt-btn" data-val="0">普通AI</button>
       <button class="opt-btn" data-val="1">一年级</button>
       <button class="opt-btn" data-val="2">二年级</button>
       <button class="opt-btn" data-val="3">三年级</button>
@@ -845,7 +846,7 @@ $('grade-select').querySelectorAll('.opt-btn').forEach(btn => {
     const oldGrade = STATE.grade;
     STATE.grade = btn.dataset.val;
     localStorage.setItem('bdy_grade', STATE.grade);
-    const gradeNames = { '1': '一年级', '2': '二年级', '3': '三年级', '4': '四年级', '5': '五年级', '6': '六年级', '7': '初中' };
+    const gradeNames = { '0': '普通AI', '1': '一年级', '2': '二年级', '3': '三年级', '4': '四年级', '5': '五年级', '6': '六年级', '7': '初中' };
     showToast('已切换到' + (gradeNames[STATE.grade] || STATE.grade) + '模式 ✓');
     // 如果年级变化了，插入一条系统消息提示AI风格切换
     if (oldGrade !== STATE.grade && STATE.history.length > 0) {
@@ -1394,8 +1395,9 @@ async function aiChat(userText) {
 
 // 年级差异化提示词
 const gradePrompts = {
+  '0': '普通AI模式：面向所有年龄段，语言自然流畅，不刻意幼稚也不过于学术。回答简洁清晰，控制在100-200字。可以讨论任何话题（保持友好安全），不限于儿童内容。语气友好专业，像一位知识渊博的朋友。',
   '1': '小学1年级：说话超简单，用短句，多用emoji（🐰🌟😊），重复强调重要内容，像幼儿园大班到小学低年级的说话方式。例子："对啦！就是3个！你好聪明呀～⭐" 数学只做1-10的加减法。',
-  '2': '小学2年级：说话简单，用短句，适当用emoji，可以教1-100的数数，简单的1-20以内加减法。语言活泼，像大哥哥大姐姐哄小朋友的感觉。',
+  '2': '小学2年级：说话简单，用短句，适当用emoji，可以教1-100的数数，简单的1-20以内加减法。语言活泼，像大哥哥大姐姐哄小朋友的感觉.',
   '3': '小学3年级：可以正常说话了，开始学简单的原理和概念，但要配例子说明。可以讲简单的因果关系，数学做三位数加减法和乘法入门。',
   '4': '小学4年级：语言正常，可以讲简单科学原理了，鼓励思考"为什么"。数学可以做应用题，引导一步步推理。科普内容可以说清基本原理。',
   '5': '小学5年级：可以讲较深的原理了，鼓励多角度思考。数学可以做分数、小数、面积计算等。可以讨论"水的循环""光的传播"等有一定深度的内容。',
@@ -1580,7 +1582,7 @@ $('gen-btn').onclick = async function() {
 
   $('story-result').style.display = 'none';
 
-  const gradeMap = {1:'一年级',2:'二年级',3:'三年级',4:'四年级',5:'五年级',6:'六年级',7:'初中'};
+  const gradeMap = {0:'普通用户',1:'一年级',2:'二年级',3:'三年级',4:'四年级',5:'五年级',6:'六年级',7:'初中'};
   const levelMap = {easy:'简单（小学基础词汇）',medium:'中等（小学高年级词汇）',hard:'困难（初中词汇）'};
   const topicMap = {random:'不限主题（自己选）',animal:'小动物',adventure:'冒险故事',friendship:'友情故事',magic:'魔法故事',science:'科学小故事'};
 
