@@ -1100,29 +1100,39 @@ async function pollinationsRequest(messages, model, timeoutMs) {
 async function generateWithRetry(messages) {
   let lastErr;
 
+  // 每个模型重试次数 + 递增等待时间
+  const delays = [3000, 6000, 10000];
+
   // 遍历每个模型
   for (let mi = 0; mi < AI_MODELS.length; mi++) {
     const { name: model, timeout } = AI_MODELS[mi];
 
-    // 每个模型最多试2次（处理临时抖动）
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // 每个模型最多试3次（给网络充足的恢复时间）
+    for (let attempt = 0; attempt < 3; attempt++) {
       try {
         return await pollinationsRequest(messages, model, timeout);
       } catch (e) {
         lastErr = e;
+        const isLastModel = mi >= AI_MODELS.length - 1;
+        const isLastAttempt = attempt >= 2;
+        const delay = delays[attempt] || 10000;
+
         if (e.name === 'AbortError') {
-          // 超时：等一下再试（指数退避）
-          if (attempt < 1 && mi < AI_MODELS.length) {
-            await new Promise(r => setTimeout(r, 2000));
+          // 超时：等一下再试
+          if (!isLastAttempt) {
+            await new Promise(r => setTimeout(r, delay));
             continue;
           }
         } else if (e.message && e.message.indexOf('429') >= 0) {
-          // 限流：等久一点再试下一个模型
-          if (mi < AI_MODELS.length - 1) {
-            await new Promise(r => setTimeout(r, 3000));
+          // 限流：等久一点再试
+          if (!isLastModel || !isLastAttempt) {
+            await new Promise(r => setTimeout(r, delay));
           }
         } else if (e.message && (e.message.indexOf('HTTP_5') >= 0 || e.message.indexOf('HTTP_4') >= 0)) {
-          // 服务器错误：跳过这个模型
+          // 服务器错误：跳过这个模型，休息一下
+          if (!isLastModel) {
+            await new Promise(r => setTimeout(r, 5000));
+          }
           break;
         }
       }
