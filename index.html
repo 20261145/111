@@ -944,12 +944,14 @@ function parseAIResponse(raw) {
       const obj = JSON.parse(text);
       // 多种可能字段
       if (typeof obj === 'string') return obj;
-      if (obj.content) return String(obj.content);
-      if (obj.text) return String(obj.text);
+      // content 优先（最终答案）
+      if (obj.content && String(obj.content).trim()) return String(obj.content);
+      if (obj.text && String(obj.text).trim()) return String(obj.text);
       if (obj.message) return String(obj.message);
       if (obj.choices?.[0]?.message?.content) return obj.choices[0].message.content;
-      // 推理模型：reasoning 里有思路、content 才是正文
-      if (obj.reasoning && obj.content) return String(obj.content);
+      // content 为空但有 reasoning 这种情况不要（这是推理过程，不是给用户看的）
+      // 如果上面都未命中，返回一个明确提示
+      if (obj.reasoning) return '（AI返回了推理过程但没有最终答案，请重试）';
     } catch (e) {
       // 解析失败，当纯文本处理
     }
@@ -1092,7 +1094,8 @@ async function pollinationsRequest(messages, model, timeoutMs) {
       body: JSON.stringify({
         messages: messages,
         model: model,
-        seed: Math.floor(Math.random() * 100000)
+        seed: Math.floor(Math.random() * 100000),
+        reasoning_effort: 'low'  // 关闭深度思考，避免token 烧在 reasoning 上
       }),
       signal: controller.signal
     });
@@ -1116,6 +1119,7 @@ async function pollinationsRequest(messages, model, timeoutMs) {
       };
       // 使用 allorigins 的 raw 模式（直接返回目标内容）
       const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://text.pollinations.ai/');
+      body.reasoning_effort = 'low';
       const res2 = await fetch(proxyUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
