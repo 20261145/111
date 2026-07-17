@@ -605,7 +605,7 @@
 <div class="chat-container" id="chat-container">
   <div class="welcome" id="welcome">
     <span class="big-emoji">👋</span>
-    <h2>嗨！我是${NAMES[STATE.gender]}</h2>
+    <h2 id="welcome-name">嗨！我是一一</h2>
     <p>我是你的AI伙伴，可以聊天、回答问题、出题、陪你学习</p>
     <p style="margin-top:6px;font-size:12px;color:var(--text-soft)">你也可以点上面的 📖 让我给你生成英语小故事</p>
   </div>
@@ -765,6 +765,9 @@ function autoResize(el) {
 function updateHeader() {
   $('header-avatar').textContent = EMOJIS[STATE.gender];
   $('header-name').textContent = '伙伴AI · ' + NAMES[STATE.gender];
+  // 更新欢迎语中的名字
+  const welcomeName = document.getElementById('welcome-name');
+  if (welcomeName) welcomeName.textContent = '嗨！我是' + NAMES[STATE.gender];
 }
 function escHtml(s) {
   const d = document.createElement('div');
