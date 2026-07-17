@@ -594,7 +594,7 @@
 <header>
   <div class="avatar" id="header-avatar">👧</div>
   <div class="title-area">
-    <h1 id="header-name">伙伴AI · 小慧</h1>
+    <h1 id="header-name">伙伴AI · 一一</h1>
     <p id="header-status">在线 · 陪你聊聊天</p>
   </div>
   <button class="header-btn" id="btn-story" title="生成故事">📖</button>
@@ -604,7 +604,7 @@
 <div class="chat-container" id="chat-container">
   <div class="welcome" id="welcome">
     <span class="big-emoji">👋</span>
-    <h2>嗨！我是小慧</h2>
+    <h2>嗨！我是${NAMES[STATE.gender]}</h2>
     <p>我是你的AI伙伴，可以聊天、回答问题、出题、陪你学习</p>
     <p style="margin-top:6px;font-size:12px;color:var(--text-soft)">你也可以点上面的 📖 让我给你生成英语小故事</p>
   </div>
@@ -699,8 +699,8 @@
   <div class="form-group">
     <label>伙伴性格</label>
     <div class="opt-row" id="gender-select">
-      <button class="opt-btn selected" data-val="girl" data-name="小慧">👧 小慧（女生）</button>
-      <button class="opt-btn" data-val="boy" data-name="小智">👦 小智（男生）</button>
+      <button class="opt-btn selected" data-val="girl" data-name="一一">👧 一一（女生）</button>
+      <button class="opt-btn" data-val="boy" data-name="大航">👦 大航（男生）</button>
     </div>
   </div>
 
@@ -745,7 +745,7 @@ const STATE = {
 };
 
 // 角色名映射
-const NAMES = { girl: '小慧', boy: '小智' };
+const NAMES = { girl: '一一', boy: '大航' };
 const EMOJIS = { girl: '👧', boy: '👦' };
 
 // ====================== Utils ======================
@@ -1226,7 +1226,7 @@ async function aiChat(userText) {
   const systemPrompt = buildSystemPrompt();
   const messages = [
     { role: 'system', content: systemPrompt },
-    ...STATE.history.slice(-10),
+    ...STATE.history.slice(-100),
     { role: 'user', content: userText }
   ];
 
@@ -1255,7 +1255,7 @@ async function aiChat(userText) {
     const searchCtx = buildSearchContext(results);
     const finalMessages = [
       { role: 'system', content: systemPrompt },
-      ...STATE.history.slice(-10),
+      ...STATE.history.slice(-100),
       { role: 'user', content: userText },
       { role: 'assistant', content: reply },
       { role: 'user', content: '根据以下网络搜索结果回答：' + searchCtx }
@@ -1265,7 +1265,13 @@ async function aiChat(userText) {
 
   STATE.history.push({ role: 'user', content: userText });
   STATE.history.push({ role: 'assistant', content: reply });
-  if (STATE.history.length > 20) STATE.history = STATE.history.slice(-20);
+  if (STATE.history.length > 200) STATE.history = STATE.history.slice(-200);
+
+  // 记忆快满了，提示用户
+  const historyCount = STATE.history.length / 2;
+  if (historyCount >= 80) {
+    showToast('⚠️ 对话记忆快满了（' + historyCount + '条），继续聊会逐渐忘记之前的内容，可以清空聊天记录哦～');
+  }
   return reply;
 }
 
