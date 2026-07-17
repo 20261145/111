@@ -958,12 +958,9 @@ function parseAIResponse(raw) {
 }
 
 // ====================== 预存故事库（终极兜底，永不失败）======================
-// 模型顺序：按实测速度排列，失败自动跳下一个
+// 模型顺序：只留实测可用的（mistral/noushermes/phi4 均已404/无效）
 const AI_MODELS = [
-  { name: 'openai-fast',  timeout: 50000 },
-  { name: 'mistral',      timeout: 45000 },
-  { name: 'noushermes',   timeout: 45000 },
-  { name: 'phi4',         timeout: 40000 },
+  { name: 'openai-fast', timeout: 50000 }
 ];
 
 // 预存故事库：20个精选故事，API全失败时兜底
@@ -1081,7 +1078,7 @@ function getFallbackStory(topic) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// Pollinations.ai 请求
+// Pollinations.ai 请求（带详细诊断）
 async function pollinationsRequest(messages, model, timeoutMs) {
   timeoutMs = timeoutMs || 45000;
   const controller = new AbortController();
@@ -1097,11 +1094,18 @@ async function pollinationsRequest(messages, model, timeoutMs) {
       }),
       signal: controller.signal
     });
-    if (!res.ok) throw new Error('HTTP_' + res.status);
+    const ct = res.headers.get('content-type') || '';
     const text = await res.text();
+    // 检测 Cloudflare 挑战页（响应是 HTML 而非文本/JSON）
+    if (!res.ok || ct.indexOf('html') >= 0 || (!ct && (text.includes('cloudflare') || text.includes('challenge') || text.includes('cf-')))) {
+      throw new Error('HTTP_' + res.status + ':cf_challenge:' + text.substring(0, 80));
+    }
     const parsed = parseAIResponse(text);
     if (!parsed || !parsed.trim()) throw new Error('空回复');
     return parsed;
+  } catch(e) {
+    console.error('[AI请求]', e.message.substring(0, 200));
+    throw e;
   } finally {
     clearTimeout(tid);
   }
@@ -1615,6 +1619,32 @@ function init() {
   });
   updateHeader();
   buildQuick();
+
+  // 静默检测网络（页面加载时先测一下 AI 是否通，
+  // 避免用户发消息等半天，才发现是网络问题）
+  (async () => {
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch('https://text.pollinations.ai/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }], model: 'openai-fast', seed: 1 }),
+        signal: controller.signal
+      });
+      clearTimeout(tid);
+      if (res.ok) {
+        setOfflineMode(false);
+        console.log('[网络检测] AI 服务正常连接');
+      } else {
+        setOfflineMode(true);
+        console.warn('[网络检测] AI 返回错误:', res.status);
+      }
+    } catch(e) {
+      setOfflineMode(true);
+      console.warn('[网络检测] AI 连不上:', e.message.substring(0, 100));
+    }
+  })();
 }
 init();
 </script>
