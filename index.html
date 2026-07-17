@@ -148,6 +148,27 @@
     }
     .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
     .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    .search-indicator {
+      display: none;
+      align-self: flex-start;
+      background: white;
+      padding: 12px 18px;
+      border-radius: var(--radius);
+      border-bottom-left-radius: 6px;
+      box-shadow: var(--shadow);
+      margin-left: 40px;
+      font-size: 14px;
+      color: var(--text-light);
+      animation: fadeIn 0.3s;
+    }
+    .search-indicator .search-icon {
+      font-size: 15px;
+      margin-right: 6px;
+    }
+    .search-indicator .search-text {
+      font-style: italic;
+    }
     @keyframes bounce {
       0%,60%,100% { transform: translateY(0); opacity: 0.5; }
       30% { transform: translateY(-8px); opacity: 1; }
@@ -591,6 +612,10 @@
 
 <div class="typing" id="typing-indicator">
   <div class="typing-dots"><span></span><span></span><span></span></div>
+</div>
+<div class="search-indicator" id="search-indicator" style="display:none">
+  <span class="search-icon">🔍</span>
+  <span class="search-text">正在搜索网络...</span>
 </div>
 
 <div class="quick-actions" id="quick-actions"></div>
@@ -1132,11 +1157,10 @@ function speakStory(lang) {
 window.addEventListener('beforeunload', () => window.speechSynthesis.cancel());
 window.speechSynthesis?.getVoices(); // 预加载语音列表
 
-// ====================== 网页搜索 ======================
-const SEARCH_TRIGGERS = ['搜一下', '搜索', '搜搜', '查一下', '查查', '网上查', '网上搜', '帮我搜', '帮我查',
-  '今天天气', '明天天气', '天气', '最新新闻', '最近新闻', '新闻',
-  '查一查', '找一下', '找找', '想知道'];
-const SEARCH_REGEX = /^[\uff00-￮]?搜(一下|索|搜)|^[\uff00-￮]?查(一下|查)?|^(帮我|我想)?(搜|查)(一下|一查)|今天天气|明天天气|天气预报|最新新闻|最近.*新闻/i;
+// ====================== AI 驱动的智能搜索 ======================
+// AI 发出搜索信号 "__SEARCH:"，前端自动拦截 → 搜索 → 把结果喂给 AI → 回复用户
+
+const SEARCH_SIGNAL = '__SEARCH:';  // AI 输出此标记表示需要搜索
 
 async function webSearch(query) {
   const q = encodeURIComponent(query.trim());
@@ -1145,11 +1169,10 @@ async function webSearch(query) {
   // 方法1: allorigins CORS proxy → DuckDuckGo Lite HTML
   try {
     const proxyUrl = 'https://api.allorigins.win/get?url=' +
-      encodeURIComponent(`https://lite.duckduckgo.com/lite/?q=${q}&kl=wt-wt`);
+      encodeURIComponent('https://lite.duckduckgo.com/lite/?q=' + q + '&kl=wt-wt');
     const resp = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
     const data = await resp.json();
     if (data.contents) {
-      // 从HTML中提取搜索结果
       const snippetRegex = /<a[^>]+class="result-link"[^>]*>([^<]+)<\/a>|<p[^>]*class="result-snippet"[^>]*>([^<]+)</gi;
       const urlRegex = /href="(https?:[^"]+)"[^>]*class="result-link"/gi;
       const urls = [];
@@ -1162,80 +1185,104 @@ async function webSearch(query) {
         if (txt.length > 10) snippets.push(txt);
       }
       for (let i = 0; i < Math.min(5, Math.max(urls.length, snippets.length)); i++) {
-        const title = snippets[i]?.substring(0, 80) || '';
-        const url = urls[i] || '';
-        if (title) results.push({ title, url });
+        if (snippets[i]) results.push({ title: snippets[i].substring(0, 100), url: urls[i] || '' });
       }
     }
-  } catch (e) {
-    console.warn('allorigins search failed:', e.message);
-  }
+  } catch (e) { /* silent, try method 2 */ }
 
   // 方法2: DuckDuckGo Instant Answer API（返回JSON，无CORS问题）
   if (results.length === 0) {
     try {
       const resp = await fetch(
-        `https://api.duckduckgo.com/?q=${q}&format=json&no_html=1&skip_disambig=1&t=h_&df=w`,
+        'https://api.duckduckgo.com/?q=' + q + '&format=json&no_html=1&skip_disambig=1&t=h_&df=w',
         { signal: AbortSignal.timeout(6000) }
       );
       const data = await resp.json();
-      if (data.AbstractText) {
-        results.push({ title: data.Heading || '百科', content: data.AbstractText, url: data.AbstractURL || '' });
-      }
+      if (data.AbstractText) results.push({ title: data.Heading || '百科', content: data.AbstractText, url: data.AbstractURL });
       (data.RelatedTopics || []).slice(0, 4).forEach(t => {
-        if (t.Text) results.push({ title: t.Text.substring(0, 100), url: t.FirstURL || '' });
+        if (t.Text) results.push({ title: t.Text.substring(0, 100), url: t.FirstURL });
       });
-    } catch (e) {
-      console.warn('DDG Instant Answer failed:', e.message);
-    }
+    } catch (e) { /* silent */ }
   }
 
   return results;
 }
 
-function formatSearchResults(results) {
-  if (!results || results.length === 0) return null;
-  let text = '\n\n📡 我帮你搜了一下，这是找到的内容：\n\n';
-  results.slice(0, 5).forEach((r, i) => {
-    if (r.content) {
-      text += `${i + 1}. ${r.content}\n`;
-    } else {
-      text += `${i + 1}. ${r.title}\n   🔗 ${r.url}\n`;
-    }
+function buildSearchContext(results) {
+  if (!results || results.length === 0) return '';
+  var ctx = '\n\n[网络搜索结果]\n';
+  results.slice(0, 5).forEach(function(r, i) {
+    if (r.content) ctx += (i + 1) + '. ' + r.content + (r.url ? ' (来源: ' + r.url + ')' : '') + '\n';
+    else ctx += (i + 1) + '. ' + r.title + (r.url ? ' ' + r.url : '') + '\n';
   });
-  text += '\n`（以上来自网络搜索）`';
-  return text;
+  ctx += '[以上结果来自网络搜索，请基于这些信息自然地回答用户]';
+  return ctx;
 }
 
-function isSearchQuery(text) {
-  return SEARCH_REGEX.test(text) || SEARCH_TRIGGERS.some(t => text.includes(t));
+// 显示/隐藏搜索中状态
+let _searchIndicatorEl = null;
+function getSearchIndicator() {
+  if (!_searchIndicatorEl) {
+    _searchIndicatorEl = document.getElementById('search-indicator');
+  }
+  return _searchIndicatorEl;
+}
+function showSearchingIndicator() {
+  const el = getSearchIndicator();
+  if (el) { el.style.display = ''; el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+}
+function hideSearchingIndicator() {
+  const el = getSearchIndicator();
+  if (el) el.style.display = 'none';
 }
 
 // ====================== AI 聊天 ======================
+// ====================== AI 聊天 ======================
 async function aiChat(userText) {
   const systemPrompt = buildSystemPrompt();
-
-  // 如果是搜索请求，先搜再聊
-  const isSearch = isSearchQuery(userText);
-  let searchInfo = '';
-  if (isSearch) {
-    searchInfo = formatSearchResults(await webSearch(userText)) || '';
-  }
-
   const messages = [
     { role: 'system', content: systemPrompt },
     ...STATE.history.slice(-10),
     { role: 'user', content: userText }
   ];
 
-  const reply = await generateWithRetry(messages);
-  return searchInfo + reply;
+  let reply = await generateWithRetry(messages);
+
+  // AI 发出了搜索信号？拦截 → 搜索 → 把结果喂给 AI → 生成最终回复
+  if (reply.includes(SEARCH_SIGNAL)) {
+    const parts = reply.split(SEARCH_SIGNAL);
+    const prefixText = (parts[0] || '').trim();
+    // 提取搜索词：取信号后第一行非空文字
+    const signalRest = parts[1] || '';
+    const queryLine = (signalRest.split('\n')[0] || signalRest.split('.')[0] || '').replace(/[。.，,?？!！\s]/g, '').trim();
+    const searchQuery = queryLine.length > 2 ? queryLine : userText;
+
+    if (prefixText) addMsg('ai', prefixText + '\n\n🔍 正在搜索...');
+    else addMsg('ai', '🔍 我来帮你查一下...');
+    showSearchingIndicator();
+
+    const results = await webSearch(searchQuery);
+    hideSearchingIndicator();
+
+    // 删掉"正在搜索"那条临时消息
+    const aiMsgs = document.querySelectorAll('.msg-item.ai');
+    if (aiMsgs.length > 0) aiMsgs[aiMsgs.length - 1].remove();
+
+    // 把搜索结果注入给 AI，生成最终回复
+    const searchCtx = buildSearchContext(results);
+    const finalMessages = [
+      { role: 'system', content: systemPrompt },
+      ...STATE.history.slice(-10),
+      { role: 'user', content: userText },
+      { role: 'assistant', content: reply },
+      { role: 'user', content: '请根据以下网络搜索结果回答我刚才的问题：' + searchCtx }
+    ];
+    reply = await generateWithRetry(finalMessages);
+  }
 
   STATE.history.push({ role: 'user', content: userText });
   STATE.history.push({ role: 'assistant', content: reply });
-  if (STATE.history.length > 20) {
-    STATE.history = STATE.history.slice(-20);
-  }
+  if (STATE.history.length > 20) STATE.history = STATE.history.slice(-20);
   return reply;
 }
 
@@ -1245,7 +1292,25 @@ function buildSystemPrompt() {
   const tone = STATE.gender === 'girl' ? '温柔可爱' : '活泼阳光';
   return `你是${name}，一个${tone}的AI伙伴，陪${grade}年级的小学生聊天。
 
-严格要求：
+★ 智能搜索功能（最重要！）：
+当用户问以下类型的问题时，你必须先搜索网络再回答（不能凭记忆瞎编！）：
+- 时事新闻、最新消息（"最近有什么新闻""今天有什么大事"）
+- 天气预报、天气相关
+- 实时数据（股价、比赛成绩、名人动态等）
+- 你不确定的知识点（历史上哪天发生了什么、科学事实等）
+- 任何需要"查一下"才能准确回答的问题
+
+搜索方法：在你的回复末尾追加一行：
+__SEARCH:（用一句话描述你要搜索的内容）
+
+例子：
+用户问："周杰伦最近在干什么？"
+你的回复："我帮你查一下～ __SEARCH:周杰伦最新动态2026"
+
+用户问："今天北京天气怎么样？"
+你的回复："我来看看！ __SEARCH:北京今天天气预报"
+
+其他严格要求：
 - 永远用中文回复
 - 语气像同龄朋友，友好亲切，可以用"呀""呢""哦"等语气词
 - 偶尔用 emoji 但不要太多
