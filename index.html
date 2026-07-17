@@ -720,6 +720,7 @@
       <button class="opt-btn" data-val="5">五年级</button>
       <button class="opt-btn selected" data-val="6">六年级</button>
       <button class="opt-btn" data-val="7">初中</button>
+      <button class="opt-btn" data-val="laoyue" style="opacity:0.6;">老岳</button>
     </div>
   </div>
 
@@ -734,6 +735,7 @@
   <div class="info-row">
     应用版本 v2.0 · 真的AI驱动 ✨<br>
     永久免费使用 · 无需注册<br>
+    <span style="opacity:0.5;font-size:11px;">⚠️ 作者每天的token有限，最好不要用太多</span><br>
     <span style="opacity:0.4;font-size:11px;">Made in 老冯</span>
   </div>
 
@@ -806,19 +808,8 @@ $('story-close').onclick = () => closeModal('story');
 $('settings-close').onclick = () => closeModal('settings');
 $('settings-clear').onclick = () => {
   if (!confirm('确定清空所有聊天记录？')) return;
-  // 从localStorage恢复历史记录
-  try {
-    const saved = localStorage.getItem('bdy_history');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        STATE.history = parsed;
-        // 渲染恢复的历史
-        parsed.forEach(msg => addMsg(msg.role, msg.content, false));
-        if (parsed.length > 0) scrollToBottom();
-      }
-    }
-  } catch(e) { console.warn('历史记录恢复失败:', e); }
+  STATE.history = [];
+  try { localStorage.removeItem('bdy_history'); } catch(e) {}
   $('chat-container').innerHTML = '';
   showWelcome();
   closeModal('settings');
@@ -848,7 +839,7 @@ $('grade-select').querySelectorAll('.opt-btn').forEach(btn => {
     const oldGrade = STATE.grade;
     STATE.grade = btn.dataset.val;
     localStorage.setItem('bdy_grade', STATE.grade);
-    const gradeNames = { '0': '普通AI', '1': '一年级', '2': '二年级', '3': '三年级', '4': '四年级', '5': '五年级', '6': '六年级', '7': '初中' };
+    const gradeNames = { '0': '普通AI', '1': '一年级', '2': '二年级', '3': '三年级', '4': '四年级', '5': '五年级', '6': '六年级', '7': '初中', 'laoyue': '老岳' };
     // 普通AI模式自动切换到慧宝，不可选男女
     if (STATE.grade === '0') {
       STATE.gender = 'neutral';
@@ -858,6 +849,9 @@ $('grade-select').querySelectorAll('.opt-btn').forEach(btn => {
       $('gender-group').style.display = 'none';
       showToast('已切换到慧宝模式 ✓');
       updateHeader();
+    } else if (STATE.grade === 'laoyue') {
+      // 老岳模式：固定回复，不消耗token
+      showToast('已切换到老岳模式 ✓（不消耗token）');
     } else {
       $('gender-group').style.display = '';
       showToast('已切换到' + (gradeNames[STATE.grade] || STATE.grade) + '模式 ✓');
@@ -1545,6 +1539,15 @@ async function sendMessage() {
   input.style.height = 'auto';
 
   addMsg('user', text);
+
+  // 老岳模式：固定回复，不消耗token
+  if (STATE.grade === 'laoyue') {
+    setTimeout(() => {
+      addMsg('ai', '我是gay');
+    }, 300);
+    return;
+  }
+
   setTyping(true);
   STATE.busy = true;
   $('send-btn').disabled = true;
@@ -1751,6 +1754,24 @@ function init() {
   }
   updateHeader();
   buildQuick();
+
+  // 恢复聊天记录
+  try {
+    const savedHistory = localStorage.getItem('bdy_history');
+    if (savedHistory) {
+      const parsed = JSON.parse(savedHistory);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        STATE.history = parsed;
+        // 渲染到界面
+        parsed.forEach(msg => {
+          addMsg(msg.role, msg.content, false);
+        });
+        scrollToBottom();
+      }
+    }
+  } catch(e) {
+    console.warn('历史记录恢复失败:', e);
+  }
 
   // 静默检测网络（仅打印日志，不切换离线状态）
   (async () => {
