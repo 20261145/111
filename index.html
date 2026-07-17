@@ -1219,6 +1219,12 @@ let currentUtterance = null;
 let isSpeaking = false;
 
 function speakStory(lang) {
+  // 检查浏览器支持
+  if (!window.speechSynthesis) {
+    showToast('您的浏览器不支持语音朗读功能');
+    return;
+  }
+
   const el = lang === 'en' ? $('story-english') : $('story-chinese');
   const btn = lang === 'en' ? $('speak-en') : $('speak-cn');
   if (!el || !el.textContent.trim()) {
@@ -1242,20 +1248,39 @@ function speakStory(lang) {
   utterance.pitch = 1.1;
   utterance.volume = 1;
 
-  // 尝试选一个合适的语音
-  const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v => v.lang.startsWith(lang === 'en' ? 'en' : 'zh'));
-  if (preferred) utterance.voice = preferred;
+  // 尝试选一个合适的语音（延迟获取确保语音列表已加载）
+  let voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) {
+    // 语音列表可能还没加载，稍后再试
+    setTimeout(() => {
+      voices = window.speechSynthesis.getVoices();
+      const preferred = voices.find(v => v.lang && v.lang.startsWith(lang === 'en' ? 'en' : 'zh'));
+      if (preferred) utterance.voice = preferred;
+    }, 100);
+  } else {
+    const preferred = voices.find(v => v.lang && v.lang.startsWith(lang === 'en' ? 'en' : 'zh'));
+    if (preferred) utterance.voice = preferred;
+  }
 
   utterance.onstart = () => {
     isSpeaking = true;
     btn.textContent = '⏹ 停止';
     btn.classList.add('playing');
   };
-  utterance.onend = utterance.onerror = () => {
+  utterance.onend = () => {
     isSpeaking = false;
     btn.textContent = '🔊 朗读';
     btn.classList.remove('playing');
+  };
+  utterance.onerror = (e) => {
+    isSpeaking = false;
+    btn.textContent = '🔊 朗读';
+    btn.classList.remove('playing');
+    console.error('朗读错误:', e);
+    // 某些浏览器需要用户交互后才能播放
+    if (e.error === 'not-allowed') {
+      showToast('请先点击页面任意位置，再尝试朗读');
+    }
   };
 
   window.speechSynthesis.cancel();
@@ -1265,7 +1290,16 @@ function speakStory(lang) {
 
 // 页面离开时自动停止朗读
 window.addEventListener('beforeunload', () => window.speechSynthesis.cancel());
-window.speechSynthesis?.getVoices(); // 预加载语音列表
+
+// 预加载语音列表（某些浏览器需要延迟加载）
+function preloadVoices() {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.getVoices();
+}
+if (window.speechSynthesis?.onvoiceschanged !== undefined) {
+  window.speechSynthesis.onvoiceschanged = preloadVoices;
+}
+preloadVoices();
 
 // ====================== AI 驱动的智能搜索 ======================
 // AI 发出搜索信号 "__SEARCH:"，前端自动拦截 → 搜索 → 把结果喂给 AI → 回复用户
