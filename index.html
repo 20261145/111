@@ -596,6 +596,7 @@
   <div class="title-area">
     <h1 id="header-name">伙伴AI · 一一</h1>
     <p id="header-status">在线 · 陪你聊聊天</p>
+  <span id="offline-badge" style="display:none;font-size:11px;background:#FFE0B2;color:#E65100;padding:2px 8px;border-radius:10px;flex-shrink:0">⚠️ 离线模式</span>
   </div>
   <button class="header-btn" id="btn-story" title="生成故事">📖</button>
   <button class="header-btn" id="btn-settings" title="设置">⚙️</button>
@@ -1402,16 +1403,27 @@ async function sendMessage() {
   try {
     const reply = await aiChat(text);
     addMsg('ai', reply);
+    setOfflineMode(false); // 联网成功，关闭离线标识
   } catch (e) {
     console.error('AI error:', e);
     // 自动降级到内置回复
     const fb = localFallback(text);
-    addMsg('ai', fb + '\n\n(AI服务连接中，已切换为本地回复模式)');
+    // 显示离线提示气泡
+setOfflineMode(true);
+addMsg('ai', '<div class="offline-notice"><strong>⚠️ 当前是离线模式</strong><br>AI服务暂时连不上，这是本地自动回复，不是真AI哦～<br>联网后会自动恢复正常 ✨</div>');
   } finally {
     setTyping(false);
     STATE.busy = false;
     $('send-btn').disabled = false;
   }
+}
+
+// 显示/隐藏离线标识
+function setOfflineMode(on) {
+  const badge = document.getElementById('offline-badge');
+  const status = document.getElementById('header-status');
+  if (badge) badge.style.display = on ? '' : 'none';
+  if (status) status.textContent = on ? '离线 · 本地回复' : '在线 · 陪你聊聊天';
 }
 
 $('send-btn').onclick = sendMessage;
