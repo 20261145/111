@@ -598,6 +598,8 @@
     <p id="header-status">在线 · 陪你聊聊天</p>
   <span id="offline-badge" style="display:none;font-size:11px;background:#FFE0B2;color:#E65100;padding:2px 8px;border-radius:10px;flex-shrink:0">⚠️ 离线模式</span>
   </div>
+  <button class="header-btn" id="btn-refresh" title="重新回答">🔄</button>
+  <button class="header-btn" id="btn-clear" title="清空聊天">🗑️</button>
   <button class="header-btn" id="btn-story" title="生成故事">📖</button>
   <button class="header-btn" id="btn-settings" title="设置">⚙️</button>
 </header>
@@ -793,6 +795,8 @@ function closeModal(id) {
 
 $('btn-story').onclick = () => openModal('story');
 $('btn-settings').onclick = () => openModal('settings');
+$('btn-clear').onclick = () => clearChat();
+$('btn-refresh').onclick = () => regenerateLast();
 $('story-overlay').onclick = () => closeModal('story');
 $('settings-overlay').onclick = () => closeModal('settings');
 $('story-close').onclick = () => closeModal('story');
@@ -1448,6 +1452,60 @@ $('chat-input').addEventListener('keydown', e => {
   }
 });
 $('chat-input').addEventListener('input', function() { autoResize(this); });
+
+// ====================== 刷新 / 清空 ======================
+// 重新生成最后一条AI回复
+async function regenerateLast() {
+  if (STATE.busy) return;
+  // 找最后一条 user 消息
+  const lastUser = [...STATE.history].reverse().find(m => m.role === 'user');
+  if (!lastUser) { alert('还没有对话可以重新生成哦～'); return; }
+  // 删掉最后一条AI回复（如果存在）
+  const aiRows = document.querySelectorAll('.msg-row.ai');
+  if (aiRows.length > 0) aiRows[aiRows.length - 1].remove();
+  // 从历史里移除最后一条AI回复（如果有）
+  if (STATE.history.length > 0 && STATE.history[STATE.history.length - 1].role === 'assistant') {
+    STATE.history.pop();
+  }
+  // 重新请求
+  setTyping(true);
+  STATE.busy = true;
+  $('send-btn').disabled = true;
+  try {
+    const reply = await aiChat(lastUser.content);
+    addMsg('ai', reply);
+    setOfflineMode(false);
+  } catch(e) {
+    const fb = localFallback(lastUser.content);
+    setOfflineMode(true);
+    addMsg('ai', '<div class="offline-notice"><strong>⚠️ 当前是离线模式</strong><br>AI服务暂时连不上，这是本地自动回复，不是真AI哦～<br>联网后会自动恢复正常 ✨</div>', false);
+  } finally {
+    setTyping(false);
+    STATE.busy = false;
+    $('send-btn').disabled = false;
+  }
+}
+
+// 清空聊天
+function clearChat() {
+  if (!confirm('确定清空所有聊天记录？')) return;
+  STATE.history = [];
+  try { localStorage.removeItem('bdy_history'); } catch(e) {}
+  const c = $('chat-container');
+  c.innerHTML = '';
+  // 恢复欢迎消息
+  const welcome = document.createElement('div');
+  welcome.className = 'welcome';
+  welcome.id = 'welcome';
+  welcome.innerHTML = `
+    <span class="big-emoji">👋</span>
+    <h2 id="welcome-name">嗨！我是${NAMES[STATE.gender]}</h2>
+    <p>我是你的AI伙伴，可以聊天、回答问题、出题、陪你学习</p>
+    <p style="margin-top:6px;font-size:12px;color:var(--text-soft)">你也可以点上面的 📖 让我给你生成英语小故事</p>
+  `;
+  c.appendChild(welcome);
+  setOfflineMode(false);
+}
 
 // ====================== 故事生成 ======================
 function getOptVal(id) {
