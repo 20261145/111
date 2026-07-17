@@ -907,7 +907,7 @@ function buildQuick() {
 }
 
 // ====================== 聊天 UI ======================
-function addMsg(role, text) {
+function addMsg(role, text, escapeHtml = true) {
   const c = $('chat-container');
   const welcome = c.querySelector('.welcome');
   if (welcome) welcome.remove();
@@ -917,7 +917,7 @@ function addMsg(role, text) {
   const av = role === 'ai' ? EMOJIS[STATE.gender] : '🙂';
   row.innerHTML = `
     <div class="msg-avatar">${av}</div>
-    <div class="msg-bubble">${escHtml(text)}</div>
+    <div class="msg-bubble">${escapeHtml ? escHtml(text) : text}</div>
   `;
   c.appendChild(row);
   c.scrollTop = c.scrollHeight;
@@ -1417,7 +1417,7 @@ async function sendMessage() {
     const fb = localFallback(text);
     // 显示离线提示气泡
 setOfflineMode(true);
-addMsg('ai', '<div class="offline-notice"><strong>⚠️ 当前是离线模式</strong><br>AI服务暂时连不上，这是本地自动回复，不是真AI哦～<br>联网后会自动恢复正常 ✨</div>');
+addMsg('ai', '<div class="offline-notice"><strong>⚠️ 当前是离线模式</strong><br>AI服务暂时连不上，这是本地自动回复，不是真AI哦～<br>联网后会自动恢复正常 ✨</div>', false);
   } finally {
     setTyping(false);
     STATE.busy = false;
