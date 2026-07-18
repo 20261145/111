@@ -761,6 +761,12 @@
   </div>
 
   <div class="form-group">
+    <label>OpenRouter API Key（可选 · 后备）</label>
+    <input type="password" id="openrouter-key-input" class="text-input" placeholder="可选，Agnes 抽风时兜底">
+    <div class="hint">去 <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a> 用邮箱注册免费获取；不填也能正常用，仅作保险</div>
+  </div>
+
+  <div class="form-group">
     <label>你的年级</label>
     <div class="opt-row" id="grade-select">
       <button class="opt-btn" data-val="0">普通AI</button>
@@ -941,7 +947,7 @@ $('theme-select').querySelectorAll('.opt-btn').forEach(btn => {
   });
 });
 
-// 硅基流动 API Key 保存
+// Agnes AI API Key 保存（主力）
 $('apikey-input').addEventListener('change', () => {
   const v = $('apikey-input').value.trim();
   if (v) {
@@ -949,6 +955,17 @@ $('apikey-input').addEventListener('change', () => {
     showToast('API Key 已保存 ✨');
   } else {
     localStorage.removeItem('bdy_apikey');
+  }
+});
+
+// OpenRouter API Key 保存（可选后备）
+$('openrouter-key-input').addEventListener('change', () => {
+  const v = $('openrouter-key-input').value.trim();
+  if (v) {
+    localStorage.setItem('bdy_openrouter_key', v);
+    showToast('OpenRouter Key 已保存 ✨');
+  } else {
+    localStorage.removeItem('bdy_openrouter_key');
   }
 });
 
@@ -1108,7 +1125,8 @@ function extractContent(obj) {
 // ====================== 预存故事库（终极兜底，永不失败）======================
 // 模型：Agnes-2.0-Flash（新加坡，仅需邮箱注册，无限免费，国内直连）
 const AI_MODELS = [
-  { name: 'Agnes-2.0-Flash', timeout: 50000 }  // 免费无限 · 新加坡直连 · 无需实名
+  { name: 'Agnes-2.0-Flash', provider: 'agnes', timeout: 50000 },             // 主力：免费无限 · 新加坡直连 · 无需实名
+  { name: 'tencent/hy3-preview:free', provider: 'openrouter', timeout: 50000 } // 后备：OpenRouter免费档(需单独Key，未配则自动跳过)
 ];
 
 // 预存故事库：20个精选故事，API全失败时兜底
@@ -1266,6 +1284,52 @@ async function agnesRequest(messages, model, timeoutMs) {
   }
 }
 
+// OpenRouter 请求 - 仅作 Agnes 抽风时的后备（需单独 API Key，免费档每日有限额）
+async function openrouterRequest(messages, model, timeoutMs) {
+  timeoutMs = timeoutMs || 50000;
+  const apiKey = localStorage.getItem('bdy_openrouter_key') || '';
+  if (!apiKey) {
+    throw new Error('SKIP_BACKUP:未配置 OpenRouter API Key（可选后备）');
+  }
+
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 2048,
+        stream: false
+      }),
+      signal: controller.signal
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      // 401=Key错误 429=限流 500=服务器错误
+      throw new Error('HTTP_' + res.status + ':' + text.substring(0, 200));
+    }
+    const obj = parseAIResponse(text);
+    if (!obj || !obj.trim()) throw new Error('空回复');
+    return obj;
+  } finally {
+    clearTimeout(tid);
+  }
+}
+
+// 根据模型 provider 路由到对应平台
+async function callModel(messages, model, timeoutMs) {
+  if (model.provider === 'openrouter') return openrouterRequest(messages, model.name, timeoutMs);
+  return agnesRequest(messages, model.name, timeoutMs);
+}
+
 // 智能重试：指数退避 + 多模型轮换
 async function generateWithRetry(messages) {
   let lastErr;
@@ -1273,14 +1337,20 @@ async function generateWithRetry(messages) {
   // 每个模型重试次数 + 递增等待时间（加快重试以减少用户等待）
   const delays = [2000, 4000, 8000];
 
+  // 过滤掉未配置 Key 的可选后备模型（Agnes 主力始终保留，没Key时由agnesRequest提示）
+  const models = AI_MODELS.filter(m => {
+    if (m.provider === 'openrouter') return !!localStorage.getItem('bdy_openrouter_key');
+    return true;
+  });
+
   // 遍历每个模型
-  for (let mi = 0; mi < AI_MODELS.length; mi++) {
-    const { name: model, timeout } = AI_MODELS[mi];
+  for (let mi = 0; mi < models.length; mi++) {
+    const { name: model, timeout } = models[mi];
 
     // 每个模型最多试3次（给网络充足的恢复时间）
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        return await agnesRequest(messages, model, 45000);
+        return await callModel(messages, model, 45000);
       } catch (e) {
         lastErr = e;
         const isLastModel = mi >= AI_MODELS.length - 1;
@@ -1922,6 +1992,7 @@ function init() {
   $('gender-group').style.display = '';
   // 恢复 API Key 显示
   $('apikey-input').value = localStorage.getItem('bdy_apikey') || '';
+  $('openrouter-key-input').value = localStorage.getItem('bdy_openrouter_key') || '';
   updateHeader();
   buildQuick();
 
