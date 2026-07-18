@@ -328,6 +328,29 @@
       font-weight: 600;
     }
     .opt-btn:active { opacity: 0.75; }
+    .text-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+      font-family: monospace;
+      background: white;
+      color: var(--text);
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .text-input:focus { border-color: var(--primary); }
+    .hint {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--text-light);
+      opacity: 0.7;
+      line-height: 1.4;
+    }
+    .hint a { color: var(--primary); text-decoration: none; }
+    .hint a:hover { text-decoration: underline; }
     .range-wrap { display: flex; align-items: center; gap: 12px; }
     .range-wrap input[type="range"] {
       flex: 1;
@@ -732,6 +755,12 @@
   </div>
 
   <div class="form-group">
+    <label>硅基流动 API Key</label>
+    <input type="password" id="apikey-input" class="text-input" placeholder="粘贴你的 API Key">
+    <div class="hint">用邮箱注册 <a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener">cloud.siliconflow.cn</a> 免费获取，送2000万Token+免费模型无限用</div>
+  </div>
+
+  <div class="form-group">
     <label>你的年级</label>
     <div class="opt-row" id="grade-select">
       <button class="opt-btn" data-val="0">普通AI</button>
@@ -754,9 +783,9 @@
   </div>
 
   <div class="info-row">
-    应用版本 v2.0 · 真的AI驱动 ✨<br>
-    永久免费使用 · 无需注册<br>
-    <span style="opacity:0.5;font-size:11px;">⚠️ 作者每天的token有限，最好不要用太多</span><br>
+    应用版本 v2.1 · 真的AI驱动 ✨<br>
+    硅基流动免费额度 · 稳定国内直连<br>
+    <span style="opacity:0.6;font-size:11px;">填入API Key后将使用你自己的额度（免费模型无限）</span><br>
     <span style="opacity:0.4;font-size:11px;">Made in 老冯</span>
   </div>
 
@@ -912,6 +941,17 @@ $('theme-select').querySelectorAll('.opt-btn').forEach(btn => {
   });
 });
 
+// 硅基流动 API Key 保存
+$('apikey-input').addEventListener('change', () => {
+  const v = $('apikey-input').value.trim();
+  if (v) {
+    localStorage.setItem('bdy_apikey', v);
+    showToast('API Key 已保存 ✨');
+  } else {
+    localStorage.removeItem('bdy_apikey');
+  }
+});
+
 // 字数滑块
 $('word-range').oninput = function() {
   $('word-range-val').textContent = this.value + '词';
@@ -1028,38 +1068,50 @@ function setTyping(v) {
   if (v) $('chat-container').scrollTop = $('chat-container').scrollHeight;
 }
 
-// ====================== AI 核心：Pollinations.ai ======================
-// 免登录、免费、无需API Key
+// ====================== AI 核心：硅基流动（SiliconFlow） ======================
+// 国内直连稳定 · 邮箱注册即用 · 免费模型近乎无限额度
 
-// 解析AI响应：可能返回纯文本，也可能返回带 reasoning 的 JSON
+// 解析AI响应：兼容纯文本和标准OpenAI格式（含 reasoning_content）
 function parseAIResponse(raw) {
   if (!raw) return '';
-  const text = raw.trim();
-  // 尝试解析 JSON（Pollinations 推理模型会返回带 reasoning 的对象）
-  if (text.startsWith('{') || text.startsWith('[')) {
-    try {
-      const obj = JSON.parse(text);
-      // 多种可能字段
-      if (typeof obj === 'string') return obj;
-      // content 优先（最终答案）
-      if (obj.content && String(obj.content).trim()) return String(obj.content);
-      if (obj.text && String(obj.text).trim()) return String(obj.text);
-      if (obj.message) return String(obj.message);
-      if (obj.choices?.[0]?.message?.content) return obj.choices[0].message.content;
-      // content 为空但有 reasoning 这种情况不要（这是推理过程，不是给用户看的）
-      // 如果上面都未命中，返回一个明确提示
-      if (obj.reasoning) return '（AI返回了推理过程但没有最终答案，请重试）';
-    } catch (e) {
-      // 解析失败，当纯文本处理
+  // 字符串：可能直接是文本，也可能是JSON
+  if (typeof raw === 'string') {
+    const text = raw.trim();
+    if (text.startsWith('{') || text.startsWith('[')) {
+      try {
+        const obj = JSON.parse(text);
+        return extractContent(obj);
+      } catch (e) { /* 当纯文本 */ }
     }
+    return text;
   }
-  return text;
+  // 对象：直接提取
+  return extractContent(raw);
+}
+
+function extractContent(obj) {
+  if (!obj) return '';
+  if (typeof obj === 'string') return obj;
+  // content 优先（最终答案）
+  if (obj.content && String(obj.content).trim()) return String(obj.content);
+  if (obj.text && String(obj.text).trim()) return String(obj.text);
+  if (obj.message) return String(obj.message);
+  if (obj.choices?.[0]?.message?.content) return obj.choices[0].message.content;
+  if (obj.choices?.[0]?.message?.reasoning_content) return obj.choices[0].message.reasoning_content;
+  // 某些模型 content 为空但有 reasoning（思考过程作为兜底）
+  if (obj.reasoning_content && String(obj.reasoning_content).trim()) return String(obj.reasoning_content);
+  if (obj.reasoning && String(obj.reasoning).trim()) return String(obj.reasoning);
+  if (obj.choices?.[0]?.message?.reasoning) return obj.choices[0].message.reasoning;
+  return '';
 }
 
 // ====================== 预存故事库（终极兜底，永不失败）======================
-// 模型顺序：只留实测可用的（mistral/noushermes/phi4 均已404/无效）
+// 模型顺序：硅基流动（SiliconFlow）模型
+// 说明：9B及以下模型永久免费无限调用（仅RPM限速）；DeepSeek-V3用注册送的额度
 const AI_MODELS = [
-  { name: 'openai-fast', timeout: 50000 }
+  { name: 'Qwen/Qwen3-8B', timeout: 50000 },        // 免费 · 永久无限 · 中文强
+  { name: 'deepseek-ai/DeepSeek-V3', timeout: 50000 }, // 额度高 · 能力强 · 兜底
+  { name: 'THUDM/GLM-4-9B-chat', timeout: 50000 }   // 免费 · 永久无限 · 最终兜底
 ];
 
 // 预存故事库：20个精选故事，API全失败时兜底
@@ -1177,61 +1229,41 @@ function getFallbackStory(topic) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// Pollinations.ai 请求（带 CORS 代理回退）
-async function pollinationsRequest(messages, model, timeoutMs) {
-  timeoutMs = timeoutMs || 45000;
+// 硅基流动（SiliconFlow）请求
+async function siliconflowRequest(messages, model, timeoutMs) {
+  timeoutMs = timeoutMs || 50000;
+  const apiKey = localStorage.getItem('bdy_apikey') || '';
+  if (!apiKey) {
+    throw new Error('NO_API_KEY:请在设置中填入硅基流动 API Key');
+  }
+
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), timeoutMs);
-  
-  // 先尝试直接请求
+
   try {
-    const res = await fetch('https://text.pollinations.ai/', {
+    const res = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
       body: JSON.stringify({
-        messages: messages,
         model: model,
-        seed: Math.floor(Math.random() * 100000),
-        reasoning_effort: 'low'  // 关闭深度思考，避免token 烧在 reasoning 上
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 2048,
+        stream: false
       }),
       signal: controller.signal
     });
-    const ct = res.headers.get('content-type') || '';
     const text = await res.text();
-    // 检测 Cloudflare 挑战页
-    if (!res.ok || ct.indexOf('html') >= 0 || (!ct && (text.includes('cloudflare') || text.includes('challenge') || text.includes('cf-')))) {
-      throw new Error('HTTP_' + res.status + ':cf_challenge');
+    if (!res.ok) {
+      // 401=Key错误 429=限流 500=服务器错误
+      throw new Error('HTTP_' + res.status + ':' + text.substring(0, 200));
     }
-    const parsed = parseAIResponse(text);
-    if (!parsed || !parsed.trim()) throw new Error('空回复');
-    return parsed;
-  } catch (directErr) {
-    // 直接请求失败，尝试 CORS 代理
-    console.log('[AI] 直接请求失败，尝试代理...');
-    try {
-      const body = {
-        messages: messages,
-        model: model,
-        seed: Math.floor(Math.random() * 100000)
-      };
-      // 使用 allorigins 的 raw 模式（直接返回目标内容）
-      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://text.pollinations.ai/');
-      body.reasoning_effort = 'low';
-      const res2 = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: controller.signal
-      });
-      const text2 = await res2.text();
-      if (!res2.ok) throw new Error('PROXY_HTTP_' + res2.status);
-      const parsed2 = parseAIResponse(text2);
-      if (!parsed2 || !parsed2.trim()) throw new Error('代理空回复');
-      return parsed2;
-    } catch (proxyErr) {
-      console.error('[AI] 代理也失败:', proxyErr.message);
-      throw directErr; // 抛出原始错误
-    }
+    const obj = parseAIResponse(text);
+    if (!obj || !obj.trim()) throw new Error('空回复');
+    return obj;
   } finally {
     clearTimeout(tid);
   }
@@ -1251,12 +1283,17 @@ async function generateWithRetry(messages) {
     // 每个模型最多试3次（给网络充足的恢复时间）
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        return await pollinationsRequest(messages, model, 45000);
+        return await siliconflowRequest(messages, model, 45000);
       } catch (e) {
         lastErr = e;
         const isLastModel = mi >= AI_MODELS.length - 1;
         const isLastAttempt = attempt >= 2;
         const delay = delays[attempt] || 10000;
+
+        // API Key 问题（未配置/无效）：不重试，立即抛出
+        if (e.message && (e.message.indexOf('NO_API_KEY') >= 0 || e.message.indexOf('401') >= 0)) {
+          throw e;
+        }
 
         if (e.name === 'AbortError') {
           // 超时：等一下再试
@@ -1679,6 +1716,15 @@ async function sendMessage() {
     return;
   }
 
+  // 未配置 API Key 直接提示
+  const apiKey = localStorage.getItem('bdy_apikey');
+  if (!apiKey) {
+    setTimeout(() => {
+      addMsg('ai', '⚠️ 还没有配置硅基流动 API Key。\n\n请点右上角 ⚙️ 设置，填入你在 cloud.siliconflow.cn 用邮箱注册后获取的免费 API Key（注册即送2000万Token，免费模型可无限使用）。');
+    }, 300);
+    return;
+  }
+
   setTyping(true);
   STATE.busy = true;
   $('send-btn').disabled = true;
@@ -1877,6 +1923,8 @@ function init() {
     b.classList.toggle('selected', b.dataset.val === STATE.grade);
   });
   $('gender-group').style.display = '';
+  // 恢复 API Key 显示
+  $('apikey-input').value = localStorage.getItem('bdy_apikey') || '';
   updateHeader();
   buildQuick();
 
@@ -1898,20 +1946,29 @@ function init() {
     console.warn('历史记录恢复失败:', e);
   }
 
-  // 静默检测网络（仅打印日志，不切换离线状态）
+  // 网络检测 + API Key 状态检查
   (async () => {
+    const apiKey = localStorage.getItem('bdy_apikey');
+    if (!apiKey) {
+      console.warn('[网络检测] 未配置 API Key，请在设置中填入硅基流动 API Key');
+      showToast('⚠️ 请先去设置填入硅基流动 API Key');
+      return;
+    }
     try {
       const controller = new AbortController();
-      const tid = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch('https://text.pollinations.ai/', {
+      const tid = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }], model: 'openai-fast', seed: 1 }),
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+        body: JSON.stringify({ model: 'Qwen/Qwen3-8B', messages: [{ role: 'user', content: 'hi' }], max_tokens: 5, stream: false }),
         signal: controller.signal
       });
       clearTimeout(tid);
       if (res.ok) {
-        console.log('[网络检测] AI 服务正常连接');
+        console.log('[网络检测] 硅基流动服务正常连接');
+      } else if (res.status === 401) {
+        console.warn('[网络检测] API Key 无效');
+        showToast('⚠️ API Key 无效，请检查设置');
       } else {
         console.warn('[网络检测] AI 返回错误:', res.status);
       }
