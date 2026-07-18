@@ -333,15 +333,24 @@
       padding: 10px 12px;
       border: 1.5px solid var(--border);
       border-radius: 10px;
-      font-size: 13px;
-      font-family: monospace;
-      background: white;
-      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      background: #fff;
+      color: #1F2937;
       box-sizing: border-box;
       outline: none;
       transition: border-color 0.2s;
+      resize: none;
+      -webkit-appearance: none;
+      appearance: none;
+      -webkit-user-select: text;
+      user-select: text;
+      -webkit-tap-highlight-color: transparent;
     }
+    .text-input::placeholder { color: #9CA3AF; opacity: 1; -webkit-text-fill-color: #9CA3AF; }
     .text-input:focus { border-color: var(--primary); }
+    body.dark-mode .text-input { background: #0F172A; color: #F1F5F9; border-color: #334155; }
+    body.dark-mode .text-input::placeholder { color: #64748B; -webkit-text-fill-color: #64748B; }
     .hint {
       margin-top: 6px;
       font-size: 11px;
@@ -1437,37 +1446,51 @@ async function openrouterRequest(messages, model, timeoutMs) {
 
 // Pollinations.ai 请求 - 免注册免Key，打开即用（可能被Cloudflare拦，有提示）
 async function pollinationsRequest(messages, model, timeoutMs) {
-  timeoutMs = timeoutMs || 50000;
+  timeoutMs = timeoutMs || 60000;
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), timeoutMs);
 
-  try {
-    const res = await fetch('https://text.pollinations.ai/openai/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: model,
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 2048,
-        stream: false
-      }),
-      signal: controller.signal
-    });
-    const text = await res.text();
-    if (!res.ok) {
-      // 被Cloudflare拦通常是 403 或 503
-      if (res.status === 403 || res.status === 503 || text.includes('cloudflare') || text.includes('Cloudflare')) {
-        throw new Error('POLLINATIONS_BLOCKED:Pollinations.ai 暂时被拦截，请刷新页面重试，或等待几分钟再试');
+  // 尝试多个端点（容错降级）
+  const endpoints = [
+    'https://text.pollinations.ai/openai/chat/completions',
+    'https://ai-api.internal.workers.ai/openai/chat/completions'
+  ];
+  let lastErr;
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          temperature: 0.7,
+          max_tokens: 2048,
+          stream: false
+        }),
+        signal: controller.signal
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        if (res.status === 403 || res.status === 503 || text.toLowerCase().includes('cloudflare') || text.toLowerCase().includes('cf-ray')) {
+          throw new Error('POLLINATIONS_BLOCKED');
+        }
+        throw new Error('HTTP_' + res.status + ':' + text.substring(0, 200));
       }
-      throw new Error('HTTP_' + res.status + ':' + text.substring(0, 200));
+      const obj = parseAIResponse(text);
+      if (!obj || !obj.trim()) throw new Error('空回复');
+      return obj;
+    } catch (e) {
+      lastErr = e;
+      if (e.message === 'POLLINATIONS_BLOCKED') {
+        continue; // 尝试下一个端点
+      }
+      throw e; // 其他错误直接抛出
     }
-    const obj = parseAIResponse(text);
-    if (!obj || !obj.trim()) throw new Error('空回复');
-    return obj;
-  } finally {
-    clearTimeout(tid);
   }
+
+  throw new Error('AI服务暂时不可用，请稍后刷新页面重试');
 }
 
 // 根据模型 provider 路由到对应平台
@@ -1529,7 +1552,7 @@ async function generateWithRetry(messages) {
           }
           break;
         } else {
-          // 空回复或其他错误：当前模型不可用，直接换
+          // 空回复、拦截或其他错误：当前模型不可用，直接换
           break;
         }
       }
@@ -1942,8 +1965,14 @@ async function sendMessage() {
     setOfflineMode(false); // 联网成功，关闭离线标识
   } catch (e) {
     console.error('AI error:', e);
-    // 直接显示错误，不兜底
-    addMsg('ai', '<div style="color:#ff6b6b"><strong>❌ AI请求失败</strong><br>' + escHtml(e.message || '未知错误') + '<br>请检查控制台(F12)获取详细信息</div>', false);
+    // 根据错误类型给出友好提示
+    let hint = '';
+    if (e.message && e.message.includes('AI服务暂时不可用')) {
+      hint = '\n\n🤖 AI服务目前被网络拦截了，可以试试：\n1. 等1-2分钟再试\n2. 刷新页面\n3. 换个网络试试'; 
+    } else if (e.name === 'AbortError') {
+      hint = '\n\n🤖 AI响应超时，可能是网络较慢，请重试一次'; 
+    }
+    addMsg('ai', '<div style="color:#ff6b6b"><strong>❌ AI请求失败</strong><br>' + escHtml(e.message || '未知错误') + hint + '</div>', false);
   } finally {
     setTyping(false);
     STATE.busy = false;
