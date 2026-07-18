@@ -1517,15 +1517,15 @@ async function generateWithRetry(messages) {
 
   // 遍历每个模型
   for (let mi = 0; mi < models.length; mi++) {
-    const { name: model, timeout } = models[mi];
+    const modelObj = models[mi];
 
     // 每个模型最多试3次（给网络充足的恢复时间）
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        return await callModel(messages, model, 45000);
+        return await callModel(messages, modelObj, 45000);
       } catch (e) {
         lastErr = e;
-        const isLastModel = mi >= AI_MODELS.length - 1;
+        const isLastModel = mi >= models.length - 1;
         const isLastAttempt = attempt >= 2;
         const delay = delays[attempt] || 10000;
 
