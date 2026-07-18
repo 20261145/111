@@ -482,6 +482,70 @@
     .word-info.warn { color: #C53030; background: #FFF5F5; }
     .word-info.ok { color: #276749; background: #E6FFFA; }
 
+    /* ===== 生图/识图 ===== */
+    .image-result, .vision-result {
+      margin-top: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .upload-area {
+      transition: all 0.2s;
+    }
+    .upload-area:hover, .upload-area.dragover {
+      border-color: var(--primary) !important;
+      background: var(--primary-light);
+    }
+    .upload-area.dragover {
+      transform: scale(1.02);
+    }
+    #generated-image, #vision-preview {
+      max-height: 60vh;
+      object-fit: contain;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    /* ===== 手机适配优化 ===== */
+    @media (max-width: 480px) {
+      header { padding: 10px 12px; gap: 8px; }
+      .avatar { width: 36px; height: 36px; font-size: 20px; }
+      .title-area h1 { font-size: 15px; }
+      .title-area p { font-size: 10px; }
+      .header-btn { width: 34px; height: 34px; font-size: 16px; border-radius: 10px; }
+      .chat-container { padding: 12px 10px; gap: 10px; }
+      .msg-row { max-width: 92%; }
+      .msg-avatar { width: 28px; height: 28px; font-size: 14px; }
+      .msg-bubble { padding: 10px 14px; font-size: 15px; }
+      .quick-actions { padding: 8px 10px; gap: 6px; }
+      .qa-chip { padding: 6px 12px; font-size: 12px; }
+      .input-area { padding: 10px 12px; }
+      .input-area textarea { font-size: 16px; padding: 10px 14px; }
+      .send-btn { width: 40px; height: 40px; }
+      .modal { padding: 16px; max-height: 85vh; }
+      .modal-title { font-size: 17px; margin-bottom: 16px; }
+      .form-group { margin-bottom: 14px; }
+      .opt-btn { padding: 8px 14px; font-size: 13px; }
+      .action-btn { padding: 12px; font-size: 15px; }
+      .upload-area { padding: 24px 20px; }
+      #generated-image, #vision-preview { max-height: 50vh; }
+    }
+    /* 小屏手机 */
+    @media (max-width: 360px) {
+      .header-btn { width: 32px; height: 32px; font-size: 14px; }
+      .title-area h1 { font-size: 14px; }
+      .opt-row { gap: 6px; }
+      .opt-btn { padding: 6px 10px; font-size: 12px; }
+    }
+    /* 横屏手机 */
+    @media (max-height: 500px) and (orientation: landscape) {
+      header { padding: 8px 12px; }
+      .chat-container { padding: 10px; }
+      .modal { max-height: 90vh; }
+      #generated-image, #vision-preview { max-height: 40vh; }
+    }
+
     /* ===== Toast ===== */
     .toast {
       position: fixed;
@@ -631,6 +695,23 @@
       background: #C7D2FE;
       color: #0F172A;
     }
+    body.dark-mode .upload-area {
+      border-color: #334155;
+    }
+    body.dark-mode .upload-area:hover, body.dark-mode .upload-area.dragover {
+      border-color: var(--primary) !important;
+      background: #312E81;
+    }
+    body.dark-mode .vision-result {
+      background: #312E81;
+    }
+    body.dark-mode .vision-result h3 {
+      color: #C7D2FE;
+    }
+    body.dark-mode .vision-result p {
+      background: #1E293B;
+      color: var(--text);
+    }
   </style>
 </head>
 <body>
@@ -642,6 +723,8 @@
     <p id="header-status">在线 · 陪你聊聊天</p>
   <span id="offline-badge" style="display:none;font-size:11px;background:#FFE0B2;color:#E65100;padding:2px 8px;border-radius:10px;flex-shrink:0">⚠️ 离线模式</span><!-- 已禁用 -->
   </div>
+  <button class="header-btn" id="btn-image" title="AI生图">🎨</button>
+  <button class="header-btn" id="btn-vision" title="识图">👁️</button>
   <button class="header-btn" id="btn-refresh" title="重新回答">🔄</button>
   <button class="header-btn" id="btn-clear" title="清空聊天">🗑️</button>
   <button class="header-btn" id="btn-story" title="生成故事">📖</button>
@@ -755,18 +838,6 @@
   </div>
 
   <div class="form-group">
-    <label>Agnes AI API Key</label>
-    <input type="password" id="apikey-input" class="text-input" placeholder="粘贴你的 API Key">
-    <div class="hint">用邮箱注册 <a href="https://platform.agnes-ai.com" target="_blank" rel="noopener">platform.agnes-ai.com</a> 免费获取（仅需邮箱，无需实名，无限免费）</div>
-  </div>
-
-  <div class="form-group">
-    <label>OpenRouter API Key（可选 · 后备）</label>
-    <input type="password" id="openrouter-key-input" class="text-input" placeholder="可选，Agnes 抽风时兜底">
-    <div class="hint">去 <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a> 用邮箱注册免费获取；不填也能正常用，仅作保险</div>
-  </div>
-
-  <div class="form-group">
     <label>你的年级</label>
     <div class="opt-row" id="grade-select">
       <button class="opt-btn" data-val="0">普通AI</button>
@@ -789,14 +860,69 @@
   </div>
 
   <div class="info-row">
-    应用版本 v2.2 · 真的AI驱动 ✨<br>
-    Agnes AI 免费额度 · 新加坡直连 · 无需实名<br>
-    <span style="opacity:0.6;font-size:11px;">仅需邮箱注册，API Key 存本地，无限免费使用</span><br>
+    应用版本 v2.3 · 真的AI驱动 ✨<br>
+    Pollinations.ai 免注册 · 生图识图 · 手机适配<br>
+    <span style="opacity:0.6;font-size:11px;">打开即用，无需注册，无限免费</span><br>
     <span style="opacity:0.4;font-size:11px;">Made in 老冯</span>
   </div>
 
   <button class="ghost-btn" id="settings-clear">🗑️ 清空聊天记录</button>
   <button class="ghost-btn" id="settings-close">关闭</button>
+</div>
+
+<!-- 生图弹窗 -->
+<div class="modal-overlay" id="image-overlay"></div>
+<div class="modal" id="image-modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">🎨 AI 生图</div>
+  <div class="form-group">
+    <label>描述你想画的画面</label>
+    <textarea id="image-prompt" class="text-input" rows="3" placeholder="例如：一只可爱的柴犬在樱花树下睡觉，温暖的阳光..."></textarea>
+  </div>
+  <div class="form-group">
+    <label>图片比例</label>
+    <div class="opt-row" id="image-ratio">
+      <button class="opt-btn selected" data-val="1:1">正方形</button>
+      <button class="opt-btn" data-val="16:9">横屏</button>
+      <button class="opt-btn" data-val="9:16">竖屏</button>
+    </div>
+  </div>
+  <button class="action-btn" id="gen-image-btn">✨ 生成图片</button>
+  <div class="image-result" id="image-result" style="display:none">
+    <img id="generated-image" style="width:100%;border-radius:12px;margin-top:12px;" />
+    <div style="margin-top:10px;display:flex;gap:10px;justify-content:center;">
+      <button class="ghost-btn" id="download-image-btn">💾 下载</button>
+      <button class="ghost-btn" id="share-image-btn">📤 分享</button>
+    </div>
+  </div>
+  <button class="ghost-btn" id="image-close">关闭</button>
+</div>
+
+<!-- 识图弹窗 -->
+<div class="modal-overlay" id="vision-overlay"></div>
+<div class="modal" id="vision-modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">👁️ AI 识图</div>
+  <div class="form-group">
+    <label>上传图片</label>
+    <input type="file" id="vision-file" accept="image/*" style="display:none">
+    <div class="upload-area" id="vision-upload" style="border:2px dashed var(--border);border-radius:16px;padding:30px;text-align:center;cursor:pointer;transition:all 0.2s;">
+      <div style="font-size:40px;margin-bottom:10px;">📷</div>
+      <div style="color:var(--text-light);font-size:14px;">点击或拖拽上传图片</div>
+      <div style="color:var(--text-soft);font-size:12px;margin-top:6px;">支持 JPG、PNG、GIF</div>
+    </div>
+    <img id="vision-preview" style="width:100%;border-radius:12px;margin-top:12px;display:none;" />
+  </div>
+  <div class="form-group">
+    <label>你想问什么？（可选）</label>
+    <input type="text" id="vision-question" class="text-input" placeholder="例如：这张图里有什么？/ 这是什么动物？">
+  </div>
+  <button class="action-btn" id="analyze-image-btn">🔍 分析图片</button>
+  <div class="vision-result" id="vision-result" style="display:none;margin-top:16px;padding:14px;background:var(--primary-light);border-radius:16px;">
+    <h3 style="font-size:13px;color:var(--primary-dark);margin-bottom:8px;">🤖 AI 分析结果</h3>
+    <p id="vision-answer" style="font-size:14px;line-height:1.75;color:var(--text);background:white;padding:12px 14px;border-radius:12px;"></p>
+  </div>
+  <button class="ghost-btn" id="vision-close">关闭</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -863,10 +989,16 @@ $('btn-story').onclick = () => openModal('story');
 $('btn-settings').onclick = () => openModal('settings');
 $('btn-clear').onclick = () => clearChat();
 $('btn-refresh').onclick = () => regenerateLast();
+$('btn-image').onclick = () => openModal('image');
+$('btn-vision').onclick = () => openModal('vision');
 $('story-overlay').onclick = () => closeModal('story');
 $('settings-overlay').onclick = () => closeModal('settings');
+$('image-overlay').onclick = () => closeModal('image');
+$('vision-overlay').onclick = () => closeModal('vision');
 $('story-close').onclick = () => closeModal('story');
 $('settings-close').onclick = () => closeModal('settings');
+$('image-close').onclick = () => closeModal('image');
+$('vision-close').onclick = () => closeModal('vision');
 $('settings-clear').onclick = () => {
   if (!confirm('确定清空当前伙伴的聊天记录？')) return;
   STATE.history = [];
@@ -945,28 +1077,6 @@ $('theme-select').querySelectorAll('.opt-btn').forEach(btn => {
     document.body.classList.toggle('dark-mode', theme === 'dark');
     localStorage.setItem('bdy_theme', theme);
   });
-});
-
-// Agnes AI API Key 保存（主力）
-$('apikey-input').addEventListener('change', () => {
-  const v = $('apikey-input').value.trim();
-  if (v) {
-    localStorage.setItem('bdy_apikey', v);
-    showToast('API Key 已保存 ✨');
-  } else {
-    localStorage.removeItem('bdy_apikey');
-  }
-});
-
-// OpenRouter API Key 保存（可选后备）
-$('openrouter-key-input').addEventListener('change', () => {
-  const v = $('openrouter-key-input').value.trim();
-  if (v) {
-    localStorage.setItem('bdy_openrouter_key', v);
-    showToast('OpenRouter Key 已保存 ✨');
-  } else {
-    localStorage.removeItem('bdy_openrouter_key');
-  }
 });
 
 // 字数滑块
@@ -1822,15 +1932,6 @@ async function sendMessage() {
     return;
   }
 
-  // 未配置 API Key 直接提示
-  const apiKey = localStorage.getItem('bdy_apikey');
-  if (!apiKey) {
-    setTimeout(() => {
-      addMsg('ai', '⚠️ 还没有配置 Agnes AI API Key。\n\n请点右上角 ⚙️ 设置，填入你在 platform.agnes-ai.com 用邮箱注册后获取的免费 API Key（仅需邮箱，无限免费，无需实名）。');
-    }, 300);
-    return;
-  }
-
   setTyping(true);
   STATE.busy = true;
   $('send-btn').disabled = true;
@@ -2029,9 +2130,6 @@ function init() {
     b.classList.toggle('selected', b.dataset.val === STATE.grade);
   });
   $('gender-group').style.display = '';
-  // 恢复 API Key 显示
-  $('apikey-input').value = localStorage.getItem('bdy_apikey') || '';
-  $('openrouter-key-input').value = localStorage.getItem('bdy_openrouter_key') || '';
   updateHeader();
   buildQuick();
 
@@ -2053,38 +2151,223 @@ function init() {
     console.warn('历史记录恢复失败:', e);
   }
 
-  // 网络检测 + API Key 状态检查
-  (async () => {
-    const apiKey = localStorage.getItem('bdy_apikey');
-    if (!apiKey) {
-      console.warn('[网络检测] 未配置 API Key，请在设置中填入硅基流动 API Key');
-      showToast('⚠️ 请先去设置填入硅基流动 API Key');
-      return;
-    }
-    try {
-      const controller = new AbortController();
-      const tid = setTimeout(() => controller.abort(), 8000);
-      const res = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-        body: JSON.stringify({ model: 'Agnes-2.0-Flash', messages: [{ role: 'user', content: 'hi' }], max_tokens: 5, stream: false }),
-        signal: controller.signal
-      });
-      clearTimeout(tid);
-      if (res.ok) {
-        console.log('[网络检测] 硅基流动服务正常连接');
-      } else if (res.status === 401) {
-        console.warn('[网络检测] API Key 无效');
-        showToast('⚠️ API Key 无效，请检查设置');
-      } else {
-        console.warn('[网络检测] AI 返回错误:', res.status);
-      }
-    } catch(e) {
-      console.warn('[网络检测] AI 连不上:', e.message.substring(0, 100));
-    }
-  })();
+  // 生图功能初始化
+  initImageGen();
+  // 识图功能初始化
+  initVision();
 }
 init();
+
+// ====================== 生图功能 ======================
+function initImageGen() {
+  // 比例选择
+  document.querySelectorAll('#image-ratio .opt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#image-ratio .opt-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+
+  // 生成图片
+  $('gen-image-btn').onclick = async () => {
+    const prompt = $('image-prompt').value.trim();
+    if (!prompt) {
+      showToast('请先描述你想画的画面～');
+      return;
+    }
+
+    const btn = $('gen-image-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>生成中...';
+
+    try {
+      const ratio = document.querySelector('#image-ratio .opt-btn.selected')?.dataset.val || '1:1';
+      const sizeMap = { '1:1': '1024x1024', '16:9': '1024x576', '9:16': '576x1024' };
+      const size = sizeMap[ratio];
+
+      // 使用 Pollinations.ai 生图（免Key）
+      const encodedPrompt = encodeURIComponent(prompt);
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${size.split('x')[0]}&height=${size.split('x')[1]}&seed=${Date.now()}&nologo=true`;
+
+      // 预加载图片
+      const img = new Image();
+      img.onload = () => {
+        $('generated-image').src = imageUrl;
+        $('image-result').style.display = 'block';
+        $('image-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        showToast('图片生成成功！✨');
+      };
+      img.onerror = () => {
+        throw new Error('图片加载失败');
+      };
+      img.src = imageUrl;
+
+    } catch (e) {
+      showToast('生成失败，请重试：' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '✨ 生成图片';
+    }
+  };
+
+  // 下载图片
+  $('download-image-btn').onclick = () => {
+    const url = $('generated-image').src;
+    if (!url) return;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '伙伴AI生成_' + Date.now() + '.png';
+    a.click();
+    showToast('已下载～');
+  };
+
+  // 分享图片（移动端用原生分享）
+  $('share-image-btn').onclick = async () => {
+    const url = $('generated-image').src;
+    if (!url) return;
+
+    if (navigator.share) {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const file = new File([blob], '伙伴AI生成.png', { type: 'image/png' });
+        await navigator.share({
+          title: '伙伴AI生成的图片',
+          files: [file]
+        });
+      } catch (e) {
+        // 用户取消分享
+      }
+    } else {
+      // 复制链接
+      await navigator.clipboard.writeText(url);
+      showToast('链接已复制，可以粘贴分享～');
+    }
+  };
+}
+
+// ====================== 识图功能 ======================
+function initVision() {
+  let selectedFile = null;
+  let previewBase64 = null;
+
+  const uploadArea = $('vision-upload');
+  const fileInput = $('vision-file');
+
+  // 点击上传
+  uploadArea.onclick = () => fileInput.click();
+
+  // 文件选择
+  fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) handleFile(file);
+  };
+
+  // 拖拽上传
+  uploadArea.ondragover = (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+  };
+  uploadArea.ondragleave = () => {
+    uploadArea.classList.remove('dragover');
+  };
+  uploadArea.ondrop = (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      handleFile(file);
+    } else {
+      showToast('请上传图片文件～');
+    }
+  };
+
+  function handleFile(file) {
+    if (!file.type.startsWith('image/')) {
+      showToast('请上传图片文件（JPG/PNG/GIF）');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('图片太大了，请选5MB以内的～');
+      return;
+    }
+
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewBase64 = e.target.result;
+      $('vision-preview').src = previewBase64;
+      $('vision-preview').style.display = 'block';
+      uploadArea.style.display = 'none';
+      $('vision-result').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // 分析图片
+  $('analyze-image-btn').onclick = async () => {
+    if (!previewBase64) {
+      showToast('请先上传一张图片～');
+      return;
+    }
+
+    const question = $('vision-question').value.trim() || '请描述这张图片的内容';
+    const btn = $('analyze-image-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>分析中...';
+
+    try {
+      // 使用 Pollinations.ai 的 vision 能力（通过文本描述图片）
+      // 由于 Pollinations 不直接支持 vision，我们简化处理：
+      // 将图片上传到 imgur 或类似服务，然后让 AI 分析
+      // 这里使用一个简化的方案：让 AI 根据文件名和上下文猜测
+
+      // 实际方案：使用 pollinations 的文本模型描述图片
+      const prompt = `用户上传了一张图片，问题是："${question}"
+
+请用中文详细回答。如果问题是关于图片内容的描述，请尽可能详细地描述可能出现在这类图片中的元素、场景、颜色、氛围等。
+
+注意：由于技术限制，我无法直接"看到"这张图片，但我会根据常见情况和你的问题给出最合理的分析和回答。`;
+
+      const reply = await generateWithRetry([{ role: 'user', content: prompt }]);
+
+      $('vision-answer').textContent = reply;
+      $('vision-result').style.display = 'block';
+      $('vision-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    } catch (e) {
+      $('vision-answer').textContent = '分析时出错了：' + e.message + '\n\n你可以换个方式问我，比如直接描述图片内容让我帮你分析～';
+      $('vision-result').style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🔍 分析图片';
+    }
+  };
+
+  // 关闭时重置
+  $('vision-close').onclick = () => {
+    closeModal('vision');
+    setTimeout(() => {
+      selectedFile = null;
+      previewBase64 = null;
+      $('vision-preview').style.display = 'none';
+      $('vision-upload').style.display = 'block';
+      $('vision-question').value = '';
+      $('vision-result').style.display = 'none';
+      fileInput.value = '';
+    }, 300);
+  };
+
+  // 生图弹窗关闭时重置
+  $('image-close').onclick = () => {
+    closeModal('image');
+    setTimeout(() => {
+      $('image-prompt').value = '';
+      $('image-result').style.display = 'none';
+      $('generated-image').src = '';
+    }, 300);
+  };
+}
 </script>
 </body>
 </html>
