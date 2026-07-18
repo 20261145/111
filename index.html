@@ -1123,10 +1123,11 @@ function extractContent(obj) {
 }
 
 // ====================== 预存故事库（终极兜底，永不失败）======================
-// 模型：Agnes-2.0-Flash（新加坡，仅需邮箱注册，无限免费，国内直连）
+// 模型配置：Pollinations.ai 免注册免Key（主力）+ Agnes/OpenRouter 可选后备
 const AI_MODELS = [
-  { name: 'Agnes-2.0-Flash', provider: 'agnes', timeout: 50000 },             // 主力：免费无限 · 新加坡直连 · 无需实名
-  { name: 'tencent/hy3-preview:free', provider: 'openrouter', timeout: 50000 } // 后备：OpenRouter免费档(需单独Key，未配则自动跳过)
+  { name: 'openai', provider: 'pollinations', timeout: 50000 },               // 主力：Pollinations.ai 免注册免Key
+  { name: 'Agnes-2.0-Flash', provider: 'agnes', timeout: 50000 },             // 可选后备：Agnes（需填Key）
+  { name: 'tencent/hy3-preview:free', provider: 'openrouter', timeout: 50000 } // 可选后备：OpenRouter免费档（需填Key）
 ];
 
 // 预存故事库：20个精选故事，API全失败时兜底
@@ -1324,8 +1325,44 @@ async function openrouterRequest(messages, model, timeoutMs) {
   }
 }
 
+// Pollinations.ai 请求 - 免注册免Key，打开即用（可能被Cloudflare拦，有提示）
+async function pollinationsRequest(messages, model, timeoutMs) {
+  timeoutMs = timeoutMs || 50000;
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch('https://text.pollinations.ai/openai/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model,
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 2048,
+        stream: false
+      }),
+      signal: controller.signal
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      // 被Cloudflare拦通常是 403 或 503
+      if (res.status === 403 || res.status === 503 || text.includes('cloudflare') || text.includes('Cloudflare')) {
+        throw new Error('POLLINATIONS_BLOCKED:Pollinations.ai 暂时被拦截，请刷新页面重试，或等待几分钟再试');
+      }
+      throw new Error('HTTP_' + res.status + ':' + text.substring(0, 200));
+    }
+    const obj = parseAIResponse(text);
+    if (!obj || !obj.trim()) throw new Error('空回复');
+    return obj;
+  } finally {
+    clearTimeout(tid);
+  }
+}
+
 // 根据模型 provider 路由到对应平台
 async function callModel(messages, model, timeoutMs) {
+  if (model.provider === 'pollinations') return pollinationsRequest(messages, model.name, timeoutMs);
   if (model.provider === 'openrouter') return openrouterRequest(messages, model.name, timeoutMs);
   return agnesRequest(messages, model.name, timeoutMs);
 }
@@ -1337,9 +1374,11 @@ async function generateWithRetry(messages) {
   // 每个模型重试次数 + 递增等待时间（加快重试以减少用户等待）
   const delays = [2000, 4000, 8000];
 
-  // 过滤掉未配置 Key 的可选后备模型（Agnes 主力始终保留，没Key时由agnesRequest提示）
+  // 过滤掉未配置 Key 的可选后备模型（Pollinations免Key始终保留）
   const models = AI_MODELS.filter(m => {
+    if (m.provider === 'pollinations') return true; // 免Key，始终可用
     if (m.provider === 'openrouter') return !!localStorage.getItem('bdy_openrouter_key');
+    if (m.provider === 'agnes') return !!localStorage.getItem('bdy_apikey');
     return true;
   });
 
