@@ -882,6 +882,7 @@ $('gender-select').querySelectorAll('.opt-btn').forEach(btn => {
       if (STATE.history.length === 0) {
         showWelcome();
       }
+      buildQuick();
       showToast('已切换到' + NAMES[STATE.gender] + ' ✓');
     }
   });
