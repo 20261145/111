@@ -1065,6 +1065,28 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ====================== 全局错误捕获（方便手机/pad 排查）======================
+// 任何 JS 报错都会在页面上方以红色面板显示，方便看到具体错误原因
+(function() {
+  if (window.__errOverlayInited) return;
+  window.__errOverlayInited = true;
+  function show(msg) {
+    let el = document.getElementById('__err_overlay');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '__err_overlay';
+      el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#ff5252;color:#fff;padding:10px 14px;font:13px/1.5 -apple-system,monospace;white-space:pre-wrap;max-height:55vh;overflow:auto;box-shadow:0 2px 10px rgba(0,0,0,.35);border-bottom:2px solid #b71c1c;';
+      el.addEventListener('click', () => el.style.display = 'none');
+      el.title = '点击隐藏';
+      (document.body || document.documentElement).appendChild(el);
+    }
+    el.textContent = '⚠️ 页面错误（点击隐藏）\n' + msg + (el.__oldText ? '\n---上一条---\n' + el.__oldText : '');
+    el.__oldText = msg;
+  }
+  window.addEventListener('error', e => show((e.error && e.error.stack) || e.message || String(e)));
+  window.addEventListener('unhandledrejection', e => show('Promise: ' + ((e.reason && e.reason.stack) || e.reason || 'unknown')));
+})();
+
 // ====================== State ======================
 const STATE = {
   gender: localStorage.getItem('bdy_gender') || 'girl',
