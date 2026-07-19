@@ -855,6 +855,16 @@
     </div>
   </div>
 
+  <div class="form-group">
+    <label>绘本画风</label>
+    <div class="opt-row" id="story-style">
+      <button class="opt-btn selected" data-val="cartoon">卡通</button>
+      <button class="opt-btn" data-val="watercolor">水彩</button>
+      <button class="opt-btn" data-val="pixel">像素</button>
+      <button class="opt-btn" data-val="dream">梦境</button>
+    </div>
+  </div>
+
   <button class="action-btn" id="gen-btn">✨ 生成故事</button>
 
   <div class="story-result" id="story-result" style="display:none">
@@ -871,6 +881,9 @@
       <button class="speak-btn" id="speak-cn" onclick="speakStory('cn')">🔊 朗读</button>
     </div>
     <p id="story-chinese"></p>
+    <button class="action-btn" id="story-book-btn" style="margin-top:16px;width:100%">🪄 把这篇故事画成绘本</button>
+    <button class="action-btn" id="story-image-btn" style="margin-top:10px;width:100%">🎨 给故事生成一张插画</button>
+    <div id="story-image-wrap" style="margin-top:12px"></div>
   </div>
 
   <button class="ghost-btn" id="story-close">关闭</button>
@@ -1001,7 +1014,7 @@
 <div class="modal" id="book-modal">
   <div class="modal-handle"></div>
   <div class="modal-title">🪄 AI 绘本工坊</div>
-  <p style="font-size:12px;color:var(--text-soft);margin:-6px 0 12px">告诉我一个想法，我帮你画一本会发光的专属绘本 ✨</p>
+  <p id="book-subtitle" style="font-size:12px;color:var(--text-soft);margin:-6px 0 12px">告诉我一个想法，我帮你画一本会发光的专属绘本 ✨</p>
   <div class="form-group">
     <label>想画一本关于什么的故事？</label>
     <textarea id="book-theme" class="text-input" rows="2" placeholder="例如：一只怕黑的小恐龙，学会了在星空下勇敢"></textarea>
@@ -1370,8 +1383,8 @@ function extractContent(obj) {
 // ====================== 预存故事库（终极兜底，永不失败）======================
 // 模型配置：智谱 BigModel（家长实名·GLM-4-Flash 永久免费·国内直连）为主力 + 可选后备
 const AI_MODELS = [
-  { name: 'glm-4-flash', provider: 'zhipu', timeout: 50000 },                 // 主力：智谱 GLM-4-Flash（免费·快·稳·国内直连）
-  { name: 'glm-4.7-flash', provider: 'zhipu', timeout: 60000 },              // 后备：智谱推理模型（更难的问题）
+  { name: 'glm-4.7-flash', provider: 'zhipu', timeout: 60000 },              // 主力：智谱 GLM-4.7-Flash（更强·理解更好·国内直连）
+  { name: 'glm-4-flash', provider: 'zhipu', timeout: 50000 },                // 后备：智谱 GLM-4-Flash（快·稳）
   { name: 'custom', provider: 'custom', timeout: 50000 },                    // 国内直连：讯飞/百度/腾讯/智谱等（自定义端点）
   { name: 'llama3-8b-8192', provider: 'groq', timeout: 50000 },              // 可选后备：Groq（需填Key，免费无限）
   { name: 'openai', provider: 'pollinations', timeout: 50000 }              // 可选后备：Pollinations.ai 免注册免Key（可能被墙）
@@ -2271,7 +2284,7 @@ async function regenerateLast() {
 function clearChat() {
   if (!confirm('确定清空所有聊天记录？')) return;
   STATE.history = [];
-  try { localStorage.removeItem('bdy_history'); } catch(e) {}
+  try { localStorage.removeItem(getHistoryKey()); } catch(e) {}
   const c = $('chat-container');
   c.innerHTML = '';
   // 恢复欢迎消息
@@ -2380,6 +2393,91 @@ $('gen-btn').onclick = async function() {
   }
 };
 
+// ====================== 英语故事 → 绘本 / 生图 ======================
+async function illustrateEnglishStory() {
+  const en = $('story-english').textContent.trim();
+  if (!en) { showToast('先点上方「生成故事」哦～'); return; }
+  const style = getOptVal('story-style') || 'cartoon';
+  const styleHint = BOOK_STYLES[style] || BOOK_STYLES.cartoon;
+  const btn = $('story-book-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>正在构思插画...';
+  try {
+    const prompt = `下面是一篇英文儿童故事。请把它改编成一本3页的中文绘本品（每页配一句中文说明 + 英文插画提示词）：
+故事原文：
+${en}
+
+要求：
+1. 把故事分成3个画面，每页一句话。
+2. 每一页包含两段：
+   文字：（用中文写一句简短说明，不超过30字）
+   画面：（用英文写插画提示词，描述这一页画面，${styleHint}，children's book illustration, high quality）
+3. 严格按格式输出，不要多余内容：
+第1页
+文字：...
+画面：...
+第2页
+文字：...
+画面：...
+第3页
+文字：...
+画面：...`;
+    const content = await generateWithRetry([{ role: 'user', content: prompt }]);
+    const pagesData = parseBookPages(content, 3);
+    const results = [];
+    for (let i = 0; i < pagesData.length; i++) {
+      btn.innerHTML = `<span class="spinner"></span>正在画第${i + 1}/${pagesData.length}页...`;
+      const imgPrompt = pagesData[i].image || pagesData[i].text;
+      let url = '';
+      try { url = await cogviewGenerate(imgPrompt, '1024x768', 90000); } catch (e) { url = ''; }
+      results.push({ text: pagesData[i].text, image: url });
+    }
+    openBookWithPages(results, style);
+    showToast('📚 英语故事绘本画好啦！');
+  } catch (e) {
+    showToast('绘本生成失败：' + (e.message || e));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🪄 把这篇故事画成绘本';
+  }
+}
+
+async function generateStoryImage() {
+  const en = $('story-english').textContent.trim();
+  if (!en) { showToast('先点上方「生成故事」哦～'); return; }
+  const style = getOptVal('story-style') || 'cartoon';
+  const styleHint = BOOK_STYLES[style] || BOOK_STYLES.cartoon;
+  const btn = $('story-image-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>构思画面...';
+  $('story-image-wrap').innerHTML = '';
+  try {
+    const prompt = `根据下面这篇儿童故事，写一句英文插画提示词（用于生成本故事的一张插画），要包含画面主体和${styleHint}风格，不超过40个英文单词，只要提示词本身：
+${en}`;
+    const imgPrompt = (await generateWithRetry([{ role: 'user', content: prompt }])).trim();
+    btn.innerHTML = '<span class="spinner"></span>正在生图...';
+    const url = await cogviewGenerate(imgPrompt, '1024x768', 90000);
+    $('story-image-wrap').innerHTML = `<img src="${url}" alt="故事插画" style="width:100%;border-radius:12px;margin-top:8px;" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" /><div style="display:none;color:var(--text-soft);padding:20px;text-align:center">🖼️ 图片加载失败</div>`;
+    showToast('🎨 插画生成完成！');
+  } catch (e) {
+    showToast('生图失败：' + (e.message || e));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🎨 给故事生成一张插画';
+  }
+}
+
+// 在英语故事绘本里复用绘本弹窗展示
+function openBookWithPages(pages, style) {
+  openModal('book');
+  document.querySelectorAll('#book-modal .form-group').forEach(g => g.style.display = 'none');
+  const sub = $('book-subtitle'); if (sub) sub.style.display = 'none';
+  if ($('book-random-btn')) $('book-random-btn').style.display = 'none';
+  if ($('gen-book-btn')) $('gen-book-btn').style.display = 'none';
+  renderBook(pages, '');
+  $('book-result').style.display = 'block';
+}
+
 // ====================== 初始化 ======================
 function init() {
   // 预置智谱 BigModel API Key（家长实名注册，GLM-4-Flash 永久免费，内置默认Key）
@@ -2433,6 +2531,14 @@ function init() {
   initVision();
   // 绘本工坊初始化
   initBook();
+
+  // 英语故事 → 绘本 / 生图 按钮绑定
+  document.querySelectorAll('#story-style .opt-btn').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('#story-style .opt-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }));
+  $('story-book-btn').onclick = illustrateEnglishStory;
+  $('story-image-btn').onclick = generateStoryImage;
 }
 init();
 
@@ -2646,7 +2752,14 @@ function initBook() {
 
   $('book-close').onclick = () => {
     closeModal('book');
-    setTimeout(() => { $('book-theme').value = ''; $('book-result').style.display = 'none'; }, 300);
+    setTimeout(() => {
+      $('book-theme').value = '';
+      $('book-result').style.display = 'none';
+      document.querySelectorAll('#book-modal .form-group').forEach(g => g.style.display = '');
+      const sub = $('book-subtitle'); if (sub) sub.style.display = '';
+      if ($('book-random-btn')) $('book-random-btn').style.display = '';
+      if ($('gen-book-btn')) $('gen-book-btn').style.display = '';
+    }, 300);
   };
 }
 
