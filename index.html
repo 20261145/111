@@ -865,6 +865,17 @@
     </div>
   </div>
 
+  <div class="form-group">
+    <label>绘本页数</label>
+    <div class="opt-row" id="story-pages">
+      <button class="opt-btn" data-val="2">2页</button>
+      <button class="opt-btn selected" data-val="3">3页</button>
+      <button class="opt-btn" data-val="4">4页</button>
+      <button class="opt-btn" data-val="5">5页</button>
+      <button class="opt-btn" data-val="6">6页</button>
+    </div>
+  </div>
+
   <button class="action-btn" id="gen-btn">✨ 生成故事</button>
 
   <div class="story-result" id="story-result" style="display:none">
@@ -1026,6 +1037,8 @@
       <button class="opt-btn" data-val="2">2页</button>
       <button class="opt-btn selected" data-val="3">3页</button>
       <button class="opt-btn" data-val="4">4页</button>
+      <button class="opt-btn" data-val="5">5页</button>
+      <button class="opt-btn" data-val="6">6页</button>
     </div>
   </div>
   <div class="form-group">
@@ -2398,32 +2411,31 @@ async function illustrateEnglishStory() {
   const en = $('story-english').textContent.trim();
   if (!en) { showToast('先点上方「生成故事」哦～'); return; }
   const style = getOptVal('story-style') || 'cartoon';
+  const pages = parseInt(getOptVal('story-pages') || '3');
   const styleHint = BOOK_STYLES[style] || BOOK_STYLES.cartoon;
   const btn = $('story-book-btn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>正在构思插画...';
   try {
-    const prompt = `下面是一篇英文儿童故事。请把它改编成一本3页的中文绘本品（每页配一句中文说明 + 英文插画提示词）：
+    const prompt = `下面是一篇英文儿童故事。请把它改编成一本${pages}页的中文绘本品（每页配一句中文说明 + 英文插画提示词）：
 故事原文：
 ${en}
 
 要求：
-1. 把故事分成3个画面，每页一句话。
+1. 把故事分成${pages}个画面，每页一句话。
 2. 每一页包含两段：
    文字：（用中文写一句简短说明，不超过30字）
    画面：（用英文写插画提示词，描述这一页画面，${styleHint}，children's book illustration, high quality）
-3. 严格按格式输出，不要多余内容：
+3. 严格按格式输出，不要多余内容；每一页必须以「第1页」「第2页」这样的标题开头：
 第1页
 文字：...
 画面：...
 第2页
 文字：...
 画面：...
-第3页
-文字：...
-画面：...`;
+（以此类推，共${pages}页）`;
     const content = await generateWithRetry([{ role: 'user', content: prompt }]);
-    const pagesData = parseBookPages(content, 3);
+    const pagesData = parseBookPages(content, pages);
     const results = [];
     for (let i = 0; i < pagesData.length; i++) {
       btn.innerHTML = `<span class="spinner"></span>正在画第${i + 1}/${pagesData.length}页...`;
@@ -2533,8 +2545,9 @@ function init() {
   initBook();
 
   // 英语故事 → 绘本 / 生图 按钮绑定
-  document.querySelectorAll('#story-style .opt-btn').forEach(btn => btn.addEventListener('click', () => {
-    document.querySelectorAll('#story-style .opt-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('#story-style .opt-btn, #story-pages .opt-btn').forEach(btn => btn.addEventListener('click', () => {
+    const group = btn.closest('.opt-row');
+    group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
   }));
   $('story-book-btn').onclick = illustrateEnglishStory;
@@ -2601,28 +2614,43 @@ async function glm4vRequest(base64, text, timeoutMs = 60000) {
 // 解析绘本：按「第N页 / 文字： / 画面：」结构提取
 function parseBookPages(content, maxPages) {
   const out = [];
+  // 方式1：标准格式（按「第N页」分段）
   const re = /第\s*(\d+)\s*页/g;
   const matches = [...content.matchAll(re)];
-  if (matches.length === 0) {
-    const blocks = content.split(/\n\s*\n/).filter(b => b.trim());
-    for (let i = 0; i < Math.min(blocks.length, maxPages); i++) {
-      const t = blocks[i].replace(/文字[：:]/g, '').replace(/画面[：:]/g, '').trim();
-      out.push({ text: t.slice(0, 60), image: '' });
+  if (matches.length > 0) {
+    for (let i = 0; i < matches.length; i++) {
+      const start = matches[i].index + matches[i][0].length;
+      const end = (i + 1 < matches.length) ? matches[i + 1].index : content.length;
+      const block = content.slice(start, end);
+      const textM = block.match(/文字[：:]\s*([\s\S]*?)(?=\s*画面[：:]|$)/);
+      const imgM = block.match(/画面[：:]\s*([\s\S]*?)(?=\s*第\s*\d+\s*页|$)/);
+      out.push({
+        text: textM ? textM[1].trim() : block.replace(/画面[：:][\s\S]*/, '').trim().slice(0, 40),
+        image: imgM ? imgM[1].trim() : ''
+      });
     }
-    return out;
+    return out.slice(0, maxPages);
   }
-  for (let i = 0; i < matches.length; i++) {
-    const start = matches[i].index + matches[i][0].length;
-    const end = (i + 1 < matches.length) ? matches[i + 1].index : content.length;
-    const block = content.slice(start, end);
-    const textM = block.match(/文字[：:]\s*([\s\S]*?)(?=\s*画面[：:]|$)/);
-    const imgM = block.match(/画面[：:]\s*([\s\S]*?)(?=\s*第\s*\d+\s*页|$)/);
-    out.push({
-      text: textM ? textM[1].trim() : block.trim().slice(0, 40),
-      image: imgM ? imgM[1].trim() : ''
-    });
+  // 方式2：按「画面：」切分（模型省略第N页/文字：时，每页=[说明]画面：[英文提示词]）
+  const imgRe = /画面[：:]\s*([\s\S]*?)(?=\s*画面[：:]|$)/g;
+  const imgMatches = [...content.matchAll(imgRe)];
+  if (imgMatches.length > 0) {
+    for (let i = 0; i < imgMatches.length; i++) {
+      const imgText = imgMatches[i][1].trim();
+      const prevEnd = i > 0 ? imgMatches[i - 1].index + imgMatches[i - 1][0].length : 0;
+      let cap = content.slice(prevEnd, imgMatches[i].index).replace(/文字[：:]/g, '').trim();
+      cap = cap.replace(/^[\s\-—|]+/, '').trim().slice(0, 60);
+      out.push({ text: cap || ('第' + (i + 1) + '页'), image: imgText });
+    }
+    return out.slice(0, maxPages);
   }
-  return out.slice(0, maxPages);
+  // 方式3：按空行兜底
+  const blocks = content.split(/\n\s*\n/).filter(b => b.trim());
+  for (let i = 0; i < Math.min(blocks.length, maxPages); i++) {
+    const t = blocks[i].replace(/文字[：:]/g, '').replace(/画面[：:]/g, '').trim();
+    out.push({ text: t.slice(0, 60), image: '' });
+  }
+  return out;
 }
 
 const BOOK_STYLES = {
@@ -2648,7 +2676,7 @@ async function generateBook(theme, pages, style, onProgress) {
 2. 每一页包含两段：
    文字：（一句话，儿童能懂，不超过30字）
    画面：（用英文写插画提示词，描述这一页的画面，${styleHint}，children's book illustration, high quality）
-3. 严格按下面格式输出，不要多余内容：
+3. 严格按下面格式输出，不要多余内容；每一页必须以「第1页」「第2页」这样的标题开头：
 第1页
 文字：...
 画面：...
