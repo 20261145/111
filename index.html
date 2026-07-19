@@ -1406,12 +1406,13 @@ function extractContent(obj) {
   if (obj.content && String(obj.content).trim()) return String(obj.content);
   if (obj.text && String(obj.text).trim()) return String(obj.text);
   if (obj.message) return String(obj.message);
-  if (obj.choices?.[0]?.message?.content) return obj.choices[0].message.content;
-  if (obj.choices?.[0]?.message?.reasoning_content) return obj.choices[0].message.reasoning_content;
+  var ch = obj.choices && obj.choices[0] && obj.choices[0].message;
+  if (ch && ch.content) return ch.content;
+  if (ch && ch.reasoning_content) return ch.reasoning_content;
   // 某些模型 content 为空但有 reasoning（思考过程作为兜底）
   if (obj.reasoning_content && String(obj.reasoning_content).trim()) return String(obj.reasoning_content);
   if (obj.reasoning && String(obj.reasoning).trim()) return String(obj.reasoning);
-  if (obj.choices?.[0]?.message?.reasoning) return obj.choices[0].message.reasoning;
+  if (ch && ch.reasoning) return ch.reasoning;
   return '';
 }
 
@@ -1989,7 +1990,7 @@ function preloadVoices() {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.getVoices();
 }
-if (window.speechSynthesis?.onvoiceschanged !== undefined) {
+if (window.speechSynthesis && window.speechSynthesis.onvoiceschanged !== undefined) {
   window.speechSynthesis.onvoiceschanged = preloadVoices;
 }
 preloadVoices();
@@ -2338,7 +2339,8 @@ function clearChat() {
 
 // ====================== 故事生成 ======================
 function getOptVal(id) {
-  return $(id).querySelector('.opt-btn.selected')?.dataset.val;
+  var _sel = $(id).querySelector('.opt-btn.selected');
+  return _sel ? _sel.dataset.val : undefined;
 }
 
 $('gen-btn').onclick = async function() {
@@ -2389,7 +2391,7 @@ $('gen-btn').onclick = async function() {
     if (!english) {
       // 尝试找 "===" 分隔
       const parts = content.split(/\n===\n|\n---+\n|\n\n+/);
-      english = parts[0]?.trim() || content;
+      english = (parts[0] ? parts[0].trim() : '') || content;
       chinese = parts.slice(1).join('\n').trim() || '（暂无译文，请重新生成）';
     }
 
@@ -2838,8 +2840,10 @@ function initImageGen() {
     btn.innerHTML = '<span class="spinner"></span>生成中...';
 
     try {
-      const ratio = document.querySelector('#image-ratio .opt-btn.selected')?.dataset.val || '1:1';
-      const style = document.querySelector('#image-style .opt-btn.selected')?.dataset.val || 'cartoon';
+      const _rEl = document.querySelector('#image-ratio .opt-btn.selected');
+      const _sEl = document.querySelector('#image-style .opt-btn.selected');
+      const ratio = (_rEl && _rEl.dataset.val) || '1:1';
+      const style = (_sEl && _sEl.dataset.val) || 'cartoon';
       const sizeMap = { '1:1': '1024x1024', '16:9': '1280x720', '9:16': '720x1280' };
       const size = sizeMap[ratio];
       const styleHint = IMG_STYLES[style] || IMG_STYLES.cartoon;
