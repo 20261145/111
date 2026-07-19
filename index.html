@@ -492,6 +492,51 @@
     .word-info.ok { color: #276749; background: #E6FFFA; }
 
     /* ===== 生图/识图 ===== */
+    /* ===== AI绘本工坊 ===== */
+    .book-carousel {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      border-radius: 16px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .book-carousel::-webkit-scrollbar { display: none; }
+    .book-slide {
+      flex: 0 0 100%;
+      scroll-snap-align: center;
+      padding: 4px;
+      box-sizing: border-box;
+    }
+    .book-img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #eef1f8;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .book-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .book-img-fallback { color: var(--text-soft); font-size: 40px; }
+    .book-page-num { text-align: center; font-size: 12px; color: var(--text-soft); margin: 6px 0 4px; }
+    .book-caption {
+      margin-top: 8px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, #EEF1FF, #F5F0FF);
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      text-align: center;
+    }
+    .book-dots { display: flex; justify-content: center; gap: 6px; margin: 10px 0; }
+    .book-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: all .2s; }
+    .book-dot.active { background: var(--primary); width: 18px; border-radius: 4px; }
+    .book-nav { display: flex; gap: 10px; justify-content: center; }
+    .book-nav .ghost-btn { flex: 1; }
+
     .image-result, .vision-result {
       margin-top: 16px;
       animation: fadeIn 0.3s ease;
@@ -734,6 +779,7 @@
   </div>
   <button class="header-btn" id="btn-image" title="AI生图">🎨</button>
   <button class="header-btn" id="btn-vision" title="识图">👁️</button>
+  <button class="header-btn" id="btn-book" title="AI绘本工坊">🪄</button>
   <button class="header-btn" id="btn-refresh" title="重新回答">🔄</button>
   <button class="header-btn" id="btn-clear" title="清空聊天">🗑️</button>
   <button class="header-btn" id="btn-story" title="生成故事">📖</button>
@@ -745,7 +791,7 @@
     <span class="big-emoji">👋</span>
     <h2 id="welcome-name">嗨！我是一一</h2>
     <p>我是你的AI伙伴，可以聊天、回答问题、出题、陪你学习</p>
-    <p style="margin-top:6px;font-size:12px;color:var(--text-soft)">你也可以点上面的 📖 让我给你生成英语小故事</p>
+    <p style="margin-top:6px;font-size:12px;color:var(--text-soft)">点上面的 🪄 让我给你画一本专属绘本，或 📖 生成英语小故事</p>
   </div>
 </div>
 
@@ -902,6 +948,15 @@
       <button class="opt-btn" data-val="9:16">竖屏</button>
     </div>
   </div>
+  <div class="form-group">
+    <label>画风</label>
+    <div class="opt-row" id="image-style">
+      <button class="opt-btn selected" data-val="cartoon">卡通</button>
+      <button class="opt-btn" data-val="watercolor">水彩</button>
+      <button class="opt-btn" data-val="pixel">像素</button>
+      <button class="opt-btn" data-val="real">写实</button>
+    </div>
+  </div>
   <button class="action-btn" id="gen-image-btn">✨ 生成图片</button>
   <div class="image-result" id="image-result" style="display:none">
     <img id="generated-image" style="width:100%;border-radius:12px;margin-top:12px;" />
@@ -933,11 +988,52 @@
     <input type="text" id="vision-question" class="text-input" placeholder="例如：这张图里有什么？/ 这是什么动物？">
   </div>
   <button class="action-btn" id="analyze-image-btn">🔍 分析图片</button>
+  <button class="ghost-btn" id="story-image-btn" style="margin-top:10px;width:100%">📖 给这张图编个故事</button>
   <div class="vision-result" id="vision-result" style="display:none;margin-top:16px;padding:14px;background:var(--primary-light);border-radius:16px;">
-    <h3 style="font-size:13px;color:var(--primary-dark);margin-bottom:8px;">🤖 AI 分析结果</h3>
+    <h3 id="vision-result-title" style="font-size:13px;color:var(--primary-dark);margin-bottom:8px;">🤖 AI 分析结果</h3>
     <p id="vision-answer" style="font-size:14px;line-height:1.75;color:var(--text);background:white;padding:12px 14px;border-radius:12px;"></p>
   </div>
   <button class="ghost-btn" id="vision-close">关闭</button>
+</div>
+
+<!-- AI绘本工坊弹窗 -->
+<div class="modal-overlay" id="book-overlay"></div>
+<div class="modal" id="book-modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">🪄 AI 绘本工坊</div>
+  <p style="font-size:12px;color:var(--text-soft);margin:-6px 0 12px">告诉我一个想法，我帮你画一本会发光的专属绘本 ✨</p>
+  <div class="form-group">
+    <label>想画一本关于什么的故事？</label>
+    <textarea id="book-theme" class="text-input" rows="2" placeholder="例如：一只怕黑的小恐龙，学会了在星空下勇敢"></textarea>
+    <button class="ghost-btn" id="book-random-btn" style="margin-top:8px;width:100%;font-size:12px;">🎲 帮我随机想一个</button>
+  </div>
+  <div class="form-group">
+    <label>页数</label>
+    <div class="opt-row" id="book-pages">
+      <button class="opt-btn" data-val="2">2页</button>
+      <button class="opt-btn selected" data-val="3">3页</button>
+      <button class="opt-btn" data-val="4">4页</button>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>画风</label>
+    <div class="opt-row" id="book-style">
+      <button class="opt-btn selected" data-val="cartoon">卡通</button>
+      <button class="opt-btn" data-val="watercolor">水彩</button>
+      <button class="opt-btn" data-val="pixel">像素</button>
+      <button class="opt-btn" data-val="dream">梦境</button>
+    </div>
+  </div>
+  <button class="action-btn" id="gen-book-btn">✨ 开始创作</button>
+  <div id="book-result" style="display:none;margin-top:16px;">
+    <div class="book-carousel" id="book-carousel"></div>
+    <div class="book-dots" id="book-dots"></div>
+    <div class="book-nav">
+      <button class="ghost-btn" id="book-prev">‹ 上一页</button>
+      <button class="ghost-btn" id="book-next">下一页 ›</button>
+    </div>
+  </div>
+  <button class="ghost-btn" id="book-close">关闭</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1006,13 +1102,16 @@ $('btn-clear').onclick = () => clearChat();
 $('btn-refresh').onclick = () => regenerateLast();
 $('btn-image').onclick = () => openModal('image');
 $('btn-vision').onclick = () => openModal('vision');
+$('btn-book').onclick = () => openModal('book');
 $('story-overlay').onclick = () => closeModal('story');
 $('settings-overlay').onclick = () => closeModal('settings');
 $('image-overlay').onclick = () => closeModal('image');
 $('vision-overlay').onclick = () => closeModal('vision');
+$('book-overlay').onclick = () => closeModal('book');
 $('story-close').onclick = () => closeModal('story');
 $('settings-close').onclick = () => closeModal('settings');
 $('image-close').onclick = () => closeModal('image');
+$('book-close').onclick = () => closeModal('book');
 $('vision-close').onclick = () => closeModal('vision');
 $('settings-clear').onclick = () => {
   if (!confirm('确定清空当前伙伴的聊天记录？')) return;
@@ -1133,7 +1232,7 @@ function showWelcome() {
     <span class="big-emoji">${EMOJIS[STATE.gender]}</span>
     <h2>嗨！我是${NAMES[STATE.gender]}</h2>
     <p>我是你的AI伙伴，可以聊天、回答问题、出题、陪你学习</p>
-    <p style="margin-top:6px;font-size:12px;color:var(--text-soft)">点上面的 📖 让我给你生成英语小故事</p>
+    <p style="margin-top:6px;font-size:12px;color:var(--text-soft)">点上面的 🪄 让我给你画一本专属绘本，或 📖 生成英语小故事</p>
   `;
   $('chat-container').appendChild(w);
 }
@@ -1188,6 +1287,13 @@ function buildQuick() {
     };
     qa.appendChild(b);
   });
+
+  // 独门绝活：绘本工坊（所有伙伴通用，方便孩子发现）
+  const bookChip = document.createElement('button');
+  bookChip.className = 'qa-chip';
+  bookChip.textContent = '🪄 画本绘本';
+  bookChip.onclick = () => openModal('book');
+  qa.appendChild(bookChip);
 }
 
 // ====================== 聊天 UI ======================
@@ -2176,7 +2282,7 @@ function clearChat() {
     <span class="big-emoji">👋</span>
     <h2 id="welcome-name">嗨！我是${NAMES[STATE.gender]}</h2>
     <p>我是你的AI伙伴，可以聊天、回答问题、出题、陪你学习</p>
-    <p style="margin-top:6px;font-size:12px;color:var(--text-soft)">你也可以点上面的 📖 让我给你生成英语小故事</p>
+    <p style="margin-top:6px;font-size:12px;color:var(--text-soft)">点上面的 🪄 让我给你画一本专属绘本，或 📖 生成英语小故事</p>
   `;
   c.appendChild(welcome);
   setOfflineMode(false);
@@ -2325,8 +2431,224 @@ function init() {
   initImageGen();
   // 识图功能初始化
   initVision();
+  // 绘本工坊初始化
+  initBook();
 }
 init();
+
+// ====================== 智谱 生图(CogView) / 识图(GLM-4V) ======================
+// 同一把智谱 Key 即可调用图像生成与图像理解，国内直连，无需额外实名
+async function cogviewGenerate(prompt, size, timeoutMs = 90000) {
+  const apiKey = localStorage.getItem('bdy_zhipu_key') || '';
+  if (!apiKey) throw new Error('NO_API_KEY');
+  const body = JSON.stringify({ model: 'cogview-3-flash', prompt, n: 1, size });
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch('https://open.bigmodel.cn/api/paas/v4/images/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body, signal: controller.signal
+    });
+    if (res.status === 401) throw new Error('401');
+    if (!res.ok) throw new Error('AI服务暂时不可用 (' + res.status + ')');
+    const data = await res.json();
+    const url = data && data.data && data.data[0] && data.data[0].url;
+    if (!url) throw new Error('图片生成失败');
+    return url;
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('生图超时，请重试');
+    throw e;
+  } finally { clearTimeout(tid); }
+}
+
+async function glm4vRequest(base64, text, timeoutMs = 60000) {
+  const apiKey = localStorage.getItem('bdy_zhipu_key') || '';
+  if (!apiKey) throw new Error('NO_API_KEY');
+  const name = NAMES[STATE.gender] || '伙伴';
+  const sysText = `你是${name}，一个温柔的儿童AI伙伴。请结合图片内容，${STATE.grade <= 2 ? '用很短很可爱的话' : STATE.grade <= 4 ? '用轻松易懂的话' : '用清晰的话'}回答孩子。图片里如果有文字请读出来。用中文回答。`;
+  const body = JSON.stringify({
+    model: 'glm-4v-flash',
+    messages: [{ role: 'user', content: [
+      { type: 'text', text: sysText + '\n\n' + text },
+      { type: 'image_url', image_url: { url: base64 } }
+    ]}]
+  });
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+      body, signal: controller.signal
+    });
+    if (res.status === 401) throw new Error('401');
+    if (!res.ok) throw new Error('AI服务暂时不可用 (' + res.status + ')');
+    const data = await res.json();
+    return parseAIResponse(data);
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('识图超时，请重试');
+    throw e;
+  } finally { clearTimeout(tid); }
+}
+
+// 解析绘本：按「第N页 / 文字： / 画面：」结构提取
+function parseBookPages(content, maxPages) {
+  const out = [];
+  const re = /第\s*(\d+)\s*页/g;
+  const matches = [...content.matchAll(re)];
+  if (matches.length === 0) {
+    const blocks = content.split(/\n\s*\n/).filter(b => b.trim());
+    for (let i = 0; i < Math.min(blocks.length, maxPages); i++) {
+      const t = blocks[i].replace(/文字[：:]/g, '').replace(/画面[：:]/g, '').trim();
+      out.push({ text: t.slice(0, 60), image: '' });
+    }
+    return out;
+  }
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].index + matches[i][0].length;
+    const end = (i + 1 < matches.length) ? matches[i + 1].index : content.length;
+    const block = content.slice(start, end);
+    const textM = block.match(/文字[：:]\s*([\s\S]*?)(?=\s*画面[：:]|$)/);
+    const imgM = block.match(/画面[：:]\s*([\s\S]*?)(?=\s*第\s*\d+\s*页|$)/);
+    out.push({
+      text: textM ? textM[1].trim() : block.trim().slice(0, 40),
+      image: imgM ? imgM[1].trim() : ''
+    });
+  }
+  return out.slice(0, maxPages);
+}
+
+const BOOK_STYLES = {
+  cartoon: '卡通插画风格，粗线条，明亮鲜艳的色彩，儿童喜欢',
+  watercolor: '水彩画风格，柔和的色彩，梦幻朦胧',
+  pixel: '像素艺术风格，复古游戏像素画，干净色块',
+  dream: '梦幻童话风格，星光与柔光，温暖治愈'
+};
+const IMG_STYLES = {
+  cartoon: '卡通插画风格，粗线条，明亮鲜艳色彩，儿童喜欢',
+  watercolor: '水彩画风格，柔和水彩，梦幻色彩',
+  pixel: '像素艺术风格，复古游戏像素画',
+  real: '写实照片风格，真实光影'
+};
+
+// 生成绘本：先写故事，再逐页生图
+async function generateBook(theme, pages, style, onProgress) {
+  const styleHint = BOOK_STYLES[style] || BOOK_STYLES.cartoon;
+  const gradeLabel = STATE.grade <= 2 ? '幼儿园到小学低年级' : STATE.grade <= 4 ? '小学中年级' : STATE.grade <= 6 ? '小学高年级' : '初中生';
+  const prompt = `请创作一本${pages}页的中文儿童绘本，主题：「${theme}」。
+要求：
+1. 适合${gradeLabel}的孩子，故事完整、温暖、有想象力。
+2. 每一页包含两段：
+   文字：（一句话，儿童能懂，不超过30字）
+   画面：（用英文写插画提示词，描述这一页的画面，${styleHint}，children's book illustration, high quality）
+3. 严格按下面格式输出，不要多余内容：
+第1页
+文字：...
+画面：...
+第2页
+文字：...
+画面：...
+（以此类推，共${pages}页）`;
+  const content = await generateWithRetry([{ role: 'user', content: prompt }]);
+  const pagesData = parseBookPages(content, pages);
+  const results = [];
+  for (let i = 0; i < pagesData.length; i++) {
+    if (onProgress) onProgress(i + 1, pagesData.length, pagesData[i].text);
+    const imgPrompt = pagesData[i].image || pagesData[i].text;
+    let url = '';
+    try { url = await cogviewGenerate(imgPrompt, '1024x768', 90000); } catch (e) { url = ''; }
+    results.push({ text: pagesData[i].text, image: url });
+  }
+  return results;
+}
+
+function renderBook(pages, theme) {
+  const wrap = $('book-carousel');
+  wrap.innerHTML = '';
+  pages.forEach((p, i) => {
+    const slide = document.createElement('div');
+    slide.className = 'book-slide';
+    const imgHtml = p.image
+      ? `<img src="${p.image}" alt="第${i + 1}页" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div class="book-img-fallback" style="display:none">🖼️ 图片加载失败</div>`
+      : `<div class="book-img-fallback">🖼️ 生成中…</div>`;
+    slide.innerHTML = `
+      <div class="book-page-num">第 ${i + 1} 页 / ${pages.length}</div>
+      <div class="book-img">${imgHtml}</div>
+      <div class="book-caption">${escHtml(p.text)}</div>`;
+    wrap.appendChild(slide);
+  });
+  const dots = $('book-dots');
+  dots.innerHTML = '';
+  pages.forEach((_, i) => {
+    const d = document.createElement('span');
+    d.className = 'book-dot' + (i === 0 ? ' active' : '');
+    dots.appendChild(d);
+  });
+  wrap.scrollLeft = 0;
+  wrap.onscroll = () => {
+    const idx = Math.round(wrap.scrollLeft / wrap.clientWidth);
+    [...dots.children].forEach((d, i) => d.classList.toggle('active', i === idx));
+  };
+  $('book-prev').onclick = () => wrap.scrollBy({ left: -wrap.clientWidth, behavior: 'smooth' });
+  $('book-next').onclick = () => wrap.scrollBy({ left: wrap.clientWidth, behavior: 'smooth' });
+}
+
+const BOOK_RANDOM_THEMES = [
+  '一只怕黑的小恐龙，学会了在星空下勇敢',
+  '会魔法的小猫，帮月亮找丢失的光',
+  '住在云朵上的小熊，第一次去地面探险',
+  '不爱刷牙的小怪兽，遇见了牙齿仙子',
+  '一只想飞的小猪，用气球实现了梦想',
+  '深海的小章鱼，交到了会发光的新朋友',
+  '迷路的小火车，沿着彩虹开回了家',
+  '害羞的小太阳，终于敢大声说“早上好”'
+];
+
+function initBook() {
+  document.querySelectorAll('#book-pages .opt-btn, #book-style .opt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const group = btn.closest('.opt-row');
+      group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+
+  $('book-random-btn').onclick = () => {
+    const t = BOOK_RANDOM_THEMES[Math.floor(Math.random() * BOOK_RANDOM_THEMES.length)];
+    $('book-theme').value = t;
+  };
+
+  $('gen-book-btn').onclick = async () => {
+    const theme = $('book-theme').value.trim();
+    if (!theme) { showToast('先告诉我你想画本什么故事呀～'); return; }
+    const pages = parseInt(getOptVal('book-pages') || '3');
+    const style = getOptVal('book-style') || 'cartoon';
+    const btn = $('gen-book-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>构思故事...';
+    $('book-result').style.display = 'none';
+    try {
+      const book = await generateBook(theme, pages, style, (i, total, txt) => {
+        btn.innerHTML = `<span class="spinner"></span>正在画第${i}/${total}页...`;
+      });
+      renderBook(book, theme);
+      $('book-result').style.display = 'block';
+      $('book-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      showToast('📚 你的专属绘本画好啦！');
+    } catch (e) {
+      showToast('创作失败：' + (e.message || e));
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '✨ 开始创作';
+    }
+  };
+
+  $('book-close').onclick = () => {
+    closeModal('book');
+    setTimeout(() => { $('book-theme').value = ''; $('book-result').style.display = 'none'; }, 300);
+  };
+}
 
 // ====================== 生图功能 ======================
 function initImageGen() {
@@ -2352,25 +2674,24 @@ function initImageGen() {
 
     try {
       const ratio = document.querySelector('#image-ratio .opt-btn.selected')?.dataset.val || '1:1';
-      const sizeMap = { '1:1': '1024x1024', '16:9': '1024x576', '9:16': '576x1024' };
+      const style = document.querySelector('#image-style .opt-btn.selected')?.dataset.val || 'cartoon';
+      const sizeMap = { '1:1': '1024x1024', '16:9': '1280x720', '9:16': '720x1280' };
       const size = sizeMap[ratio];
+      const styleHint = IMG_STYLES[style] || IMG_STYLES.cartoon;
+      const fullPrompt = prompt + '，' + styleHint + '，高质量，明亮可爱';
 
-      // 使用 Pollinations.ai 生图（免Key）
-      const encodedPrompt = encodeURIComponent(prompt);
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${size.split('x')[0]}&height=${size.split('x')[1]}&seed=${Date.now()}&nologo=true`;
-
-      // 预加载图片
-      const img = new Image();
-      img.onload = () => {
-        $('generated-image').src = imageUrl;
-        $('image-result').style.display = 'block';
-        $('image-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        showToast('图片生成成功！✨');
-      };
-      img.onerror = () => {
-        throw new Error('图片加载失败');
-      };
-      img.src = imageUrl;
+      const imageUrl = await cogviewGenerate(fullPrompt, size);
+      // 预加载确认
+      await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = resolve;
+        img.onerror = () => reject(new Error('图片加载失败'));
+        img.src = imageUrl;
+      });
+      $('generated-image').src = imageUrl;
+      $('image-result').style.display = 'block';
+      $('image-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      showToast('图片生成成功！✨');
 
     } catch (e) {
       showToast('生成失败，请重试：' + e.message);
@@ -2457,60 +2778,87 @@ function initVision() {
       showToast('请上传图片文件（JPG/PNG/GIF）');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('图片太大了，请选5MB以内的～');
+    if (file.size > 8 * 1024 * 1024) {
+      showToast('图片太大了，请选8MB以内的～');
       return;
     }
-
     selectedFile = file;
     const reader = new FileReader();
     reader.onload = (e) => {
-      previewBase64 = e.target.result;
-      $('vision-preview').src = previewBase64;
-      $('vision-preview').style.display = 'block';
-      uploadArea.style.display = 'none';
-      $('vision-result').style.display = 'none';
+      const dataUrl = e.target.result;
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        const maxDim = 1024;
+        if (w > maxDim || h > maxDim) {
+          const scale = Math.min(maxDim / w, maxDim / h);
+          w = Math.round(w * scale); h = Math.round(h * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const out = canvas.toDataURL('image/jpeg', 0.85);
+        previewBase64 = out;
+        $('vision-preview').src = out;
+        $('vision-preview').style.display = 'block';
+        uploadArea.style.display = 'none';
+        $('vision-result').style.display = 'none';
+      };
+      img.onerror = () => showToast('图片读取失败，换一张试试～');
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
   }
 
-  // 分析图片
+  // 分析图片（真·识图：智谱 GLM-4V）
   $('analyze-image-btn').onclick = async () => {
     if (!previewBase64) {
       showToast('请先上传一张图片～');
       return;
     }
-
     const question = $('vision-question').value.trim() || '请描述这张图片的内容';
     const btn = $('analyze-image-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>分析中...';
-
+    btn.innerHTML = '<span class="spinner"></span>识别中...';
+    $('vision-result-title').textContent = '🤖 AI 识别结果';
     try {
-      // 使用 Pollinations.ai 的 vision 能力（通过文本描述图片）
-      // 由于 Pollinations 不直接支持 vision，我们简化处理：
-      // 将图片上传到 imgur 或类似服务，然后让 AI 分析
-      // 这里使用一个简化的方案：让 AI 根据文件名和上下文猜测
-
-      // 实际方案：使用 pollinations 的文本模型描述图片
-      const prompt = `用户上传了一张图片，问题是："${question}"
-
-请用中文详细回答。如果问题是关于图片内容的描述，请尽可能详细地描述可能出现在这类图片中的元素、场景、颜色、氛围等。
-
-注意：由于技术限制，我无法直接"看到"这张图片，但我会根据常见情况和你的问题给出最合理的分析和回答。`;
-
-      const reply = await generateWithRetry([{ role: 'user', content: prompt }]);
-
-      $('vision-answer').textContent = reply;
+      const reply = await glm4vRequest(previewBase64, '孩子的问题是：' + question);
+      $('vision-answer').textContent = reply || '我没太看清，换个角度再拍一张试试？';
       $('vision-result').style.display = 'block';
       $('vision-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
     } catch (e) {
-      $('vision-answer').textContent = '分析时出错了：' + e.message + '\n\n你可以换个方式问我，比如直接描述图片内容让我帮你分析～';
+      let hint = '识别失败，请重试～';
+      if (e.message === 'NO_API_KEY') hint = '未检测到智谱 Key，请在设置里填入';
+      else if (e.message === '401') hint = '智谱 Key 无效，请重新获取';
+      $('vision-answer').textContent = hint;
       $('vision-result').style.display = 'block';
     } finally {
       btn.disabled = false;
       btn.innerHTML = '🔍 分析图片';
+    }
+  };
+
+  // 给图片编故事（视觉 + 创作，独门绝活）
+  $('story-image-btn').onclick = async () => {
+    if (!previewBase64) {
+      showToast('请先上传一张图片～');
+      return;
+    }
+    const btn = $('story-image-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>创作中...';
+    $('vision-result-title').textContent = '📖 AI 编的故事';
+    try {
+      const reply = await glm4vRequest(previewBase64, '请根据这张图片，创作一个适合儿童的温暖小故事（80字以内），主角可以是图中的事物，结尾温馨有想象力。');
+      $('vision-answer').textContent = reply || '我有点词穷，再给我看看这张图？';
+      $('vision-result').style.display = 'block';
+      $('vision-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (e) {
+      $('vision-answer').textContent = '创作失败，请重试～';
+      $('vision-result').style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '📖 给这张图编个故事';
     }
   };
 
