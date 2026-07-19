@@ -2336,12 +2336,14 @@ $('gen-btn').onclick = async function() {
   const levelMap = {easy:'简单（小学基础词汇）',medium:'中等（小学高年级词汇）',hard:'困难（初中词汇）'};
   const topicMap = {random:'不限主题（自己选）',animal:'小动物',adventure:'冒险故事',friendship:'友情故事',magic:'魔法故事',science:'科学小故事'};
 
-  // 简化提示词：直接出故事，避免触发推理模式
+  // 直接出故事，禁止输出思考过程
   const prompt = `为${gradeMap[grade]}学生写一个英语小故事。
 主题：${topicMap[topic]}
 难度：${levelMap[level]}
 目标长度：约${words}个英文单词
 要求：积极向上、词汇简单、完整故事
+
+重要：直接输出故事，不要输出思考过程、不要写"头脑风暴"、"选择"、"起草"、"字数检查"等步骤，不要输出<think>或任何推理标签。
 
 请严格按下面格式输出（只输出这两段，不要其他内容）：
 
@@ -2426,7 +2428,7 @@ ${en}
 2. 每一页包含两段：
    文字：（用中文写一句简短说明，不超过30字）
    画面：（用英文写插画提示词，描述这一页画面，${styleHint}，children's book illustration, high quality）
-3. 严格按格式输出，不要多余内容；每一页必须以「第1页」「第2页」这样的标题开头：
+3. 严格按格式输出，不要多余内容，不要输出思考过程；每一页必须以「第1页」「第2页」这样的标题开头：
 第1页
 文字：...
 画面：...
@@ -2676,7 +2678,7 @@ async function generateBook(theme, pages, style, onProgress) {
 2. 每一页包含两段：
    文字：（一句话，儿童能懂，不超过30字）
    画面：（用英文写插画提示词，描述这一页的画面，${styleHint}，children's book illustration, high quality）
-3. 严格按下面格式输出，不要多余内容；每一页必须以「第1页」「第2页」这样的标题开头：
+3. 严格按下面格式输出，不要多余内容，不要输出思考过程；每一页必须以「第1页」「第2页」这样的标题开头：
 第1页
 文字：...
 画面：...
