@@ -25,7 +25,7 @@
       --shadow: 0 2px 12px rgba(91,124,250,0.08);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { height: 100dvh; overflow: hidden; }
+    html, body { height: 100vh; height: 100dvh; overflow: hidden; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
       background: var(--bg);
@@ -75,6 +75,7 @@
     .chat-container {
       flex: 1;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       padding: 16px 14px;
       display: flex;
       flex-direction: column;
@@ -273,12 +274,14 @@
     .modal-overlay.show { opacity: 1; pointer-events: auto; }
     .modal {
       position: fixed;
-      bottom: 0; left: 0; right: 0;
+      bottom: var(--kb, 0px); left: 0; right: 0;
       background: white;
       border-radius: 24px 24px 0 0;
       padding: 16px 18px 24px;
+      max-height: 80vh;
       max-height: 80dvh;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       z-index: 101;
       transform: translateY(100%);
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -598,6 +601,19 @@
       .chat-container { padding: 10px; }
       .modal { max-height: 90vh; }
       #generated-image, #vision-preview { max-height: 40vh; }
+    }
+
+    /* 平板 / 桌面：弹窗居中，避免在小屏手机以外拉成全宽底栏 */
+    @media (min-width: 560px) {
+      .modal {
+        left: 50%; right: auto;
+        width: 480px;
+        border-radius: 24px;
+        transform: translateX(-50%) translateY(100%);
+      }
+      .modal.show {
+        transform: translateX(-50%) translateY(0);
+      }
     }
 
     /* ===== Toast ===== */
@@ -1373,6 +1389,10 @@ function addMsg(role, text, escapeHtml = true) {
   c.appendChild(row);
   c.scrollTop = c.scrollHeight;
 }
+function scrollToBottom() {
+  const c = $('chat-container');
+  if (c) c.scrollTop = c.scrollHeight;
+}
 function setTyping(v) {
   $('typing-indicator').classList.toggle('visible', v);
   if (v) $('chat-container').scrollTop = $('chat-container').scrollHeight;
@@ -1846,154 +1866,130 @@ async function generateWithRetry(messages) {
 }
 
 // ====================== 朗读功能 ======================
-let currentUtterance = null;
-let isSpeaking = false;
+let ttsBtn = null;
+let ttsQueue = [];
+let ttsIndex = 0;
+let ttsLang = 'zh-CN';
+
+// 预加载语音列表（iOS Safari 首次同步 getVoices() 为空，需监听 voiceschanged 事件）
+let _voiceCache = [];
+function refreshVoices() {
+  if (!window.speechSynthesis) return;
+  _voiceCache = window.speechSynthesis.getVoices() || [];
+}
+if (window.speechSynthesis) {
+  refreshVoices();
+  window.speechSynthesis.onvoiceschanged = refreshVoices;
+}
+
+function pickVoice(lang) {
+  const cache = (_voiceCache && _voiceCache.length) ? _voiceCache
+    : (window.speechSynthesis ? (window.speechSynthesis.getVoices() || []) : []);
+  const want = lang === 'en' ? 'en' : 'zh';
+  let v = cache.find(function (x) { return x.lang && x.lang.toLowerCase() === (lang === 'en' ? 'en-us' : 'zh-cn'); });
+  if (!v) v = cache.find(function (x) { return x.lang && x.lang.toLowerCase().indexOf(want) === 0; });
+  return v || null;
+}
+
+// 长文本按句子切分，避免 iOS 单次朗读超过 ~15s 被截断
+function splitTTS(text, lang) {
+  text = (text || '').replace(/\r/g, '').replace(/\n+/g, ' ').trim();
+  if (!text) return [];
+  var parts = lang === 'en'
+    ? text.match(/[^.!?]+[.!?]*/g)
+    : text.match(/[^。！？!?]+[。！？!?]*/g);
+  if (!parts) parts = [text];
+  return parts.map(function (p) { return p.trim(); }).filter(Boolean);
+}
+
+function stopTTS() {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  if (ttsBtn) {
+    ttsBtn.textContent = ttsBtn.dataset.label || '🔊 朗读';
+    ttsBtn.classList.remove('playing');
+  }
+  ttsBtn = null; ttsQueue = []; ttsIndex = 0;
+}
+
+function speakChunk() {
+  if (!ttsQueue.length || ttsIndex >= ttsQueue.length) { stopTTS(); return; }
+  var u = new SpeechSynthesisUtterance(ttsQueue[ttsIndex++]);
+  u.lang = ttsLang === 'en' ? 'en-US' : 'zh-CN';
+  u.rate = ttsLang === 'en' ? 0.9 : 1.0;
+  u.pitch = 1.1;
+  u.volume = 1;
+  var v = pickVoice(ttsLang);
+  if (v) u.voice = v;
+  u.onend = function () { if (ttsIndex < ttsQueue.length) speakChunk(); else stopTTS(); };
+  u.onerror = function (e) {
+    stopTTS();
+    if (e && e.error === 'not-allowed') showToast('请先点一下页面，再试朗读～');
+  };
+  window.speechSynthesis.speak(u);
+}
+
+function startTTS(text, lang, btn) {
+  if (!window.speechSynthesis) { showToast('你的浏览器不支持语音朗读'); return; }
+  var chunks = splitTTS(text, lang);
+  if (!chunks.length) { showToast('没有可朗读的内容'); return; }
+  ttsLang = lang;
+  ttsBtn = btn;
+  ttsQueue = chunks;
+  ttsIndex = 0;
+  if (!btn.dataset.label) btn.dataset.label = btn.textContent;
+  btn.textContent = (lang === 'en' ? '⏹ 停止' : '⏹');
+  btn.classList.add('playing');
+  window.speechSynthesis.cancel();
+  speakChunk();
+}
 
 function speakStory(lang) {
-  // 检查浏览器支持
-  if (!window.speechSynthesis) {
-    showToast('您的浏览器不支持语音朗读功能');
-    return;
+  var el = lang === 'en' ? $('story-english') : $('story-chinese');
+  var btn = lang === 'en' ? $('speak-en') : $('speak-cn');
+  if (!el || !el.textContent.trim()) { showToast('还没有故事内容，先生成一个吧～'); return; }
+  if (ttsBtn) {
+    if (ttsBtn === btn) { stopTTS(); return; }
+    stopTTS();
   }
-
-  const el = lang === 'en' ? $('story-english') : $('story-chinese');
-  const btn = lang === 'en' ? $('speak-en') : $('speak-cn');
-  if (!el || !el.textContent.trim()) {
-    showToast('还没有故事内容，先生成一个吧！');
-    return;
-  }
-
-  // 已经在朗读 → 停止
-  if (isSpeaking) {
-    window.speechSynthesis.cancel();
-    isSpeaking = false;
-    btn.textContent = '🔊 朗读';
-    btn.classList.remove('playing');
-    return;
-  }
-
-  const text = el.textContent.trim();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = lang === 'en' ? 'en-US' : 'zh-CN';
-  utterance.rate = lang === 'en' ? 0.9 : 1.0;
-  utterance.pitch = 1.1;
-  utterance.volume = 1;
-
-  // 尝试选一个合适的语音（延迟获取确保语音列表已加载）
-  let voices = window.speechSynthesis.getVoices();
-  if (!voices || voices.length === 0) {
-    // 语音列表可能还没加载，稍后再试
-    setTimeout(() => {
-      voices = window.speechSynthesis.getVoices();
-      const preferred = voices.find(v => v.lang && v.lang.startsWith(lang === 'en' ? 'en' : 'zh'));
-      if (preferred) utterance.voice = preferred;
-    }, 100);
-  } else {
-    const preferred = voices.find(v => v.lang && v.lang.startsWith(lang === 'en' ? 'en' : 'zh'));
-    if (preferred) utterance.voice = preferred;
-  }
-
-  utterance.onstart = () => {
-    isSpeaking = true;
-    btn.textContent = '⏹ 停止';
-    btn.classList.add('playing');
-  };
-  utterance.onend = () => {
-    isSpeaking = false;
-    btn.textContent = '🔊 朗读';
-    btn.classList.remove('playing');
-  };
-  utterance.onerror = (e) => {
-    isSpeaking = false;
-    btn.textContent = '🔊 朗读';
-    btn.classList.remove('playing');
-    console.error('朗读错误:', e);
-    // 某些浏览器需要用户交互后才能播放
-    if (e.error === 'not-allowed') {
-      showToast('请先点击页面任意位置，再尝试朗读');
-    }
-  };
-
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
-  currentUtterance = utterance;
+  startTTS(el.textContent.trim(), lang, btn);
 }
 
-// 聊天消息朗读
 function speakChat(msgId, btn) {
-  if (!window.speechSynthesis) {
-    showToast('您的浏览器不支持语音朗读功能');
-    return;
-  }
-  
-  const el = document.getElementById(msgId);
+  if (!window.speechSynthesis) { showToast('你的浏览器不支持语音朗读'); return; }
+  var el = document.getElementById(msgId);
   if (!el || !el.textContent.trim()) return;
-  
-  // 已经在朗读 → 停止
-  if (isSpeaking && currentUtterance) {
-    window.speechSynthesis.cancel();
-    isSpeaking = false;
-    if (currentSpeakBtn) {
-      currentSpeakBtn.textContent = '🔊';
-      currentSpeakBtn.classList.remove('playing');
-    }
-    currentSpeakBtn = null;
-    return;
+  if (ttsBtn) {
+    if (ttsBtn === btn) { stopTTS(); return; }
+    stopTTS();
   }
-  
-  const text = el.textContent.trim();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'zh-CN';
-  utterance.rate = 1.0;
-  utterance.pitch = 1.0;
-  utterance.volume = 1;
-  
-  // 选中文语音
-  let voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v => v.lang && v.lang.startsWith('zh'));
-  if (preferred) utterance.voice = preferred;
-  
-  utterance.onstart = () => {
-    isSpeaking = true;
-    btn.textContent = '⏹';
-    btn.classList.add('playing');
-    currentSpeakBtn = btn;
-  };
-  utterance.onend = () => {
-    isSpeaking = false;
-    btn.textContent = '🔊';
-    btn.classList.remove('playing');
-    currentSpeakBtn = null;
-  };
-  utterance.onerror = (e) => {
-    isSpeaking = false;
-    btn.textContent = '🔊';
-    btn.classList.remove('playing');
-    currentSpeakBtn = null;
-    if (e.error === 'not-allowed') {
-      showToast('请先点击页面任意位置，再尝试朗读');
-    }
-  };
-  
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
-  currentUtterance = utterance;
+  startTTS(el.textContent.trim(), 'zh', btn);
 }
-
-let currentSpeakBtn = null;
 
 // 页面离开时自动停止朗读
-window.addEventListener('beforeunload', () => window.speechSynthesis.cancel());
+window.addEventListener('beforeunload', function () {
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+});
 
-// 预加载语音列表（某些浏览器需要延迟加载）
-function preloadVoices() {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.getVoices();
-}
-if (window.speechSynthesis && window.speechSynthesis.onvoiceschanged !== undefined) {
-  window.speechSynthesis.onvoiceschanged = preloadVoices;
-}
-preloadVoices();
+
+// 移动端键盘适配：弹出键盘时把底部弹窗顶起，避免输入框被遮挡
+(function () {
+  if (!window.visualViewport) return;
+  var vv = window.visualViewport;
+  function apply() {
+    var kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.documentElement.style.setProperty('--kb', kb + 'px');
+  }
+  vv.addEventListener('resize', apply);
+  vv.addEventListener('scroll', apply);
+  apply();
+  // 聚焦输入框时确保它落在可视区域内
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT')) {
+      setTimeout(function () { try { t.scrollIntoView({ block: 'nearest' }); } catch (_) {} }, 250);
+    }
+  });
+})();
 
 // ====================== AI 驱动的智能搜索 ======================
 // AI 发出搜索信号 "__SEARCH:"，前端自动拦截 → 搜索 → 把结果喂给 AI → 回复用户
@@ -2586,7 +2582,10 @@ init();
 async function cogviewGenerate(prompt, size, timeoutMs = 90000) {
   const apiKey = localStorage.getItem('bdy_zhipu_key') || '';
   if (!apiKey) throw new Error('NO_API_KEY');
-  const body = JSON.stringify({ model: 'cogview-3-flash', prompt, n: 1, size });
+  // 增强提示词：补充英文画质词，提升 CogView 出图质量与一致性
+  let p = (prompt || '').trim().replace(/^[\s"']+|[\s"']+$/g, '').trim();
+  const enhanced = p + ', masterpiece, best quality, highly detailed, children friendly';
+  const body = JSON.stringify({ model: 'cogview-3-flash', prompt: enhanced, n: 1, size });
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -2611,7 +2610,12 @@ async function glm4vRequest(base64, text, timeoutMs = 60000) {
   const apiKey = localStorage.getItem('bdy_zhipu_key') || '';
   if (!apiKey) throw new Error('NO_API_KEY');
   const name = NAMES[STATE.gender] || '伙伴';
-  const sysText = `你是${name}，一个温柔的儿童AI伙伴。请结合图片内容，${STATE.grade <= 2 ? '用很短很可爱的话' : STATE.grade <= 4 ? '用轻松易懂的话' : '用清晰的话'}回答孩子。图片里如果有文字请读出来。用中文回答。`;
+  const gradeWords = STATE.grade <= 2 ? '很短很可爱的话' : STATE.grade <= 4 ? '轻松易懂的话' : '清晰准确的话';
+  const sysText = `你是${name}，一个温柔、耐心的儿童AI伙伴，很会看图。请按下面的步骤回答孩子：
+1. 先仔细描述你看到的画面：主体是谁/是什么、在做什么、主要颜色、背景，以及画面里有没有文字（有文字请一字不差地读出来）。
+2. 再结合图片，用${gradeWords}回答孩子的问题。
+3. 如果图片看不清楚，就老实告诉孩子“我没看太清”，绝对不要瞎编。
+始终用中文回答，语气温柔。`;
   const body = JSON.stringify({
     model: 'glm-4v-flash',
     messages: [{ role: 'user', content: [
