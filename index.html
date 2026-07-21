@@ -2023,65 +2023,33 @@ function dailyGreeting() {
 }
 
 // ====================== \u2728 惊喜按钮：与众不同的小魔法 ======================
-var SURPRISE_JOKES = [
-  '为什么数学书总是很忧伤？因为它有太多"问题"！',
-  '为什么鱼不上学？因为它已经有文凭（鱼鳔）了！',
-  '为什么小兔子不借东西？因为它怕"免"为其难！',
-  '为什么鸡要去上学？因为它想变得更"鸡"智！',
-  '为什么要带铅笔去上学？因为上课要"写"作业！',
-  '为什么篮球总是很吵？因为它喜欢"拍"马屁！',
-  '为什么小熊不吃糖？因为它怕长"熊"牙！',
-  '为什么黑板不说话？因为它"榜"上有名！',
-  '为什么小猫爱玩游戏？因为它有九条命可以"复活"！'
-];
-var SURPRISE_FACTS = [
-  '蓝鲸的心脏和一辆小汽车一样大哦！',
-  '章鱼有三颗心脏，血是蓝色的！',
-  '香蕉其实是浆果，而草莓不是！',
-  '一天有 24 小时，但金星上的一天比一年还长！',
-  '蜜蜂的翅膀一分钟能扇动 11400 次！',
-  '人的一生会走大约 20 万公里的路，可以绕地球 5 圈！',
-  '北极熊的皮肤其实是黑色的！',
-  '一棵大树一天可以蒸发 1000 升水！',
-  '蜗牛可以连续睡 3 年！',
-  '太阳比地球大 109 倍！'
-];
-var SURPRISE_RIDDLES = [
-  '什么东西越洗越脏？答案是：水！',
-  '什么字人人都念错？答案是："错"字！',
-  '什么东西有头有尾，但没有身体？答案是：硬币！',
-  '什么东西明明是你的，别人却用得更多？答案是：你的名字！',
-  '什么门永远不能打开？答案是：球门！',
-  '什么书最不让人看？答案是：说明书！',
-  '什么人生来就戴着帽子？答案是：蘑菇！',
-  '什么水不能喝？答案是：墨水！',
-  '什么布剪不断？答案是：瀑布！',
-  '什么东西晚上才出生，一到早上就消失？答案是：梦！'
-];
-var SURPRISE_ACTIVITIES = [
-  '试着用你今天的心情画一幅画吧！',
-  '给身边的家人一个温暖的拥抱！',
-  '想想一件让你开心的事，把它写下来～',
-  '试试闭上眼睛，听 30 秒周围的声音，你听到了什么？',
-  '对着镜子做一个最搞笑的鬼脸！',
-  '给自己倒一杯水，慢慢喝完，感受水的味道～',
-  '找一本你最喜欢的书，读其中一段出来！',
-  '深呼吸三次，每次数 5 秒，感觉身体放松了吗？',
-  '唱一首你最喜欢的歌，不用管好不好听！',
-  '在纸上画一条线，把它变成任何你想象的东西！'
-];
+// ✨ 惊喜魔法 —— 用 AI 每次生成不一样的内容
 function surpriseMe() {
-  var pools = [
-    { items: SURPRISE_JOKES, icon: '😂', label: '讲个笑话' },
-    { items: SURPRISE_FACTS, icon: '🔬', label: '冷知识' },
-    { items: SURPRISE_RIDDLES, icon: '🤔', label: '猜个谜语' },
-    { items: SURPRISE_ACTIVITIES, icon: '🎯', label: '活动推荐' }
-  ];
-  var pool = pools[Math.floor(Math.random() * pools.length)];
-  var text = pool.items[Math.floor(Math.random() * pool.items.length)];
-  addMsg('ai', pool.icon + ' ' + pool.label + '：\n' + text, false);
-  scrollToBottom();
-  showToast('\u2728 变了个小魔法');
+  var types = ['讲一个新鲜的儿童笑话，不要老梗', '说一个有趣的冷知识', '出一个脑筋急转弯（直接说答案）', '推荐一个好玩的亲子活动', '用三句话讲一个微故事', '说一句温暖鼓励的话', '推荐一本值得读的绘本（直接说书名和理由）'];
+  var type = types[Math.floor(Math.random() * types.length)];
+  var btn = document.getElementById('btn-surprise');
+  if (!btn) return;
+  var originalText = btn.textContent;
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  showToast('✨ 正在变魔法...');
+  generateWithRetry([{
+    role: 'user',
+    content: '你是' + (NAMES[STATE.gender] || '伙伴') + '，一个懂儿童心理的AI伙伴。请' + type + '。内容要适合' + (STATE.grade <= 2 ? '5-7岁' : STATE.grade <= 4 ? '7-9岁' : '9-12岁') + '儿童，有趣、有创意、有温度。直接输出内容，不要解释你在做什么，不要加开场白或标题。'
+  }]).then(function (reply) {
+    if (reply && reply.trim()) {
+      addMsg('ai', '✨ ' + reply.trim(), false);
+      scrollToBottom();
+      showToast('✨ 魔法变好啦！');
+    } else {
+      showToast('魔法失效了，再点一下试试～');
+    }
+  }).catch(function () {
+    showToast('魔法失效了，再点一下试试～');
+  }).finally(function () {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  });
 }
 
 
