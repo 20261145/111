@@ -816,7 +816,12 @@
     #magic-modal .magic-result { width: 100%; text-align: center; }
     #magic-modal .magic-result .magic-icon { font-size: 48px; margin-bottom: 8px; display: block; }
     #magic-modal .magic-result .magic-text { font-size: 16px; line-height: 1.7; color: #333; white-space: pre-wrap; word-break: break-word; text-align: left; padding: 0 8px; }
-    #magic-modal .magic-footer { padding: 8px 20px 20px; display: flex; gap: 10px; justify-content: center; }
+    #magic-modal .magic-game { padding: 0 4px 8px; }
+    #magic-modal .magic-game-wrap { max-height: 65vh; overflow: auto; border-radius: 12px; border: 2px solid #E8ECFF; background: #fafcff; }
+    #magic-modal .magic-game-wrap game, #magic-modal .magic-game-wrap canvas { display: block; max-width: 100%; margin: 0 auto; }
+    #magic-modal .magic-game-wrap h1, #magic-modal .magic-game-wrap h2, #magic-modal .magic-game-wrap h3 { margin: 4px 0; font-size: 16px; text-align: center; }
+    #magic-modal .magic-game-wrap p { margin: 4px 0; font-size: 13px; color: #666; text-align: center; }
+    #magic-modal .magic-footer { padding: 8px 20px 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
     #magic-modal .magic-footer button {
       padding: 10px 28px; border: none; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform 0.2s;
     }
@@ -2087,7 +2092,7 @@ function surpriseMe() {
   if (!body) return;
   body.innerHTML = '<div class="magic-loading"><div class="sparkle">✨</div><p>正在变魔法...</p><div class="magic-dots"><span></span><span></span><span></span></div></div>';
   overlay.classList.add('show');
-  var types = ['讲一个新鲜的儿童笑话，不要老梗', '说一个有趣的冷知识', '出一个脑筋急转弯（直接说答案）', '推荐一个好玩的亲子活动', '用三句话讲一个微故事', '说一句温暖鼓励的话'];
+  var types = ['讲一个新鲜的儿童笑话，不要老梗', '说一个有趣的冷知识', '出一个脑筋急转弯（直接说答案）', '推荐一个好玩的亲子活动', '用三句话讲一个微故事', '说一句温暖鼓励的话', '制作一个简单有趣的HTML5小游戏（井字棋/猜数字/石头剪刀布/色子比大小/弹跳球/接水果等），直接输出完整可运行的单个HTML文件代码，带标题和玩法说明。所有样式和脚本都内联在HTML里，不依赖任何外部文件或CDN。整个游戏代码用<game>标签包裹起来，方便提取。'];
   var type = types[Math.floor(Math.random() * types.length)];
   generateWithRetry([{
     role: 'user',
@@ -2098,7 +2103,13 @@ function surpriseMe() {
       body.innerHTML = '<div class="magic-result"><span class="magic-icon">😅</span><div class="magic-text">魔法跑偏了，试试再变一次？</div></div>';
       return;
     }
-    body.innerHTML = '<div class="magic-result"><span class="magic-icon">✨</span><div class="magic-text">' + escHtml(t) + '</div></div>';
+    // 如果是游戏代码（包含<game>标签），提取并渲染成可玩状态
+    if (t.indexOf('<game>') !== -1) {
+      var raw = t.replace(/[\s\S]*?<game>/, '').replace(/<\/game>[\s\S]*/, '');
+      body.innerHTML = '<div class="magic-result magic-game"><div class="magic-game-wrap">' + raw + '</div></div>';
+    } else {
+      body.innerHTML = '<div class="magic-result"><span class="magic-icon">✨</span><div class="magic-text">' + escHtml(t) + '</div></div>';
+    }
   }).catch(function () {
     body.innerHTML = '<div class="magic-result"><span class="magic-icon">😅</span><div class="magic-text">魔法跑偏了，试试再变一次？</div></div>';
   });
