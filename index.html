@@ -1503,13 +1503,11 @@ function countWordsEn(s) {
   return (s.trim().match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) || []).length;
 }
 
-// ====================== 学习小组·增强版（云端同步）======================
+// ====================== 学习小组·邀请链接版（无需云端）======================
+// 通过 URL 邀请链接分享小组，数据存在创建者本地，加入者通过链接获取
 var GROUP_KEY = 'bdy_group';
 var QBANK_KEY = 'bdy_qbank_';
 var GROUP_COLORS = ['#667EEA','#F59E0B','#4CAF50','#EF4444','#8B5CF6','#EC4899','#06B6D4','#F97316'];
-var JSONBIN_BASE = 'https://api.jsonbin.io/v3/b';
-var _gcBinId = null;
-var _gcInterval = null;
 var _gcMyName = null;
 
 function getGroupData() { try { return JSON.parse(localStorage.getItem(GROUP_KEY)||'null'); } catch(e){ return null; } }
@@ -1524,36 +1522,33 @@ function makeCode() {
   return r;
 }
 
-// 云端读取（通用）
-function cloudGet(binId, cb) {
-  if (!binId) { cb(null); return; }
-  fetch(JSONBIN_BASE + '/' + binId + '/latest', {
-    method: 'GET', headers: { 'X-Bin-Meta': 'false' }, mode: 'cors'
-  }).then(function(r) { if (!r.ok) return null; return r.json(); })
-  .then(function(d) { cb(d); }).catch(function() { cb(null); });
+// 生成邀请链接（把小组数据编码进 URL）
+function makeInviteLink(g) {
+  var payload = {
+    n: g.name,
+    m: g.members,
+    c: g.created,
+    q: (g.questions || []).slice(0, 20),
+    r: (g.revisions || []),
+    h: (g.chat || []).slice(-50)
+  };
+  try {
+    var json = JSON.stringify(payload);
+    var encoded = btoa(encodeURIComponent(json));
+    return location.href.split('?')[0] + '?g=' + encoded;
+  } catch(e) { return null; }
 }
 
-// 云端写入
-function cloudPut(binId, data, cb) {
-  if (!binId) { if (cb) cb(); return; }
-  fetch(JSONBIN_BASE + '/' + binId, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, mode: 'cors', body: JSON.stringify(data)
-  }).then(function(r) { return r.json(); })
-  .then(function(d) { if (cb) cb(d); }).catch(function() { if (cb) cb(); });
-}
-
-// 从云端读取 group + qbank + revs + chat
-function loadGroupBin(g, cb) {
-  if (!g || !g.binId) { cb(g || {}, null, null, null); return; }
-  cloudGet(g.binId, function(data) {
-    if (data && data.code) {
-      data.binId = g.binId;
-      setGroupData(data);
-      cb(data, data.questions||[], data.revisions||[], data.chat||[]);
-    } else {
-      cb(g, [], [], []);
-    }
-  });
+// 解析邀请链接
+function parseInviteLink() {
+  var params = new URLSearchParams(location.search);
+  var g = params.get('g');
+  if (!g) return null;
+  try {
+    var json = decodeURIComponent(atob(g));
+    var data = JSON.parse(json);
+    return data;
+  } catch(e) { return null; }
 }
 
 // 创建小组
@@ -1568,63 +1563,54 @@ function createGroup() {
   var code = makeCode();
   var g = { code: code, name: gname, members: [myName], created: Date.now(), questions:[], revisions:[], chat:[] };
   _gcMyName = myName;
-
-  // 写入云端
-  fetch(JSONBIN_BASE, { method:'POST', headers:{'Content-Type':'application/json'}, mode:'cors', body:JSON.stringify(g) })
-  .then(function(r){ return r.json(); })
-  .then(function(d){
-    var bid = d.record ? d.record.id : (d.metadata ? d.metadata.id : null);
-    if(bid){
-      g.binId = bid;
-      // 更新云端数据，加入 binId
-      g.binId = bid;
-      fetch(JSONBIN_BASE + '/' + bid, { method:'PUT', headers:{'Content-Type':'application/json'}, mode:'cors', body:JSON.stringify(g) }).catch(function(){});
-      setGroupData(g);
-      showToast('小组「' + gname + '」创建成功！');
-    } else {
-      showToast('小组已创建（离线模式）');
-    }
-  })
-  .catch(function(){
-    g.binId = null;
-    setGroupData(g);
-    showToast('小组已创建（离线模式）');
-  });
+  setGroupData(g);
+  showToast('小组「' + gname + '」创建成功！');
   refreshGroupBadge();
-  openGroupCenterModal();
+  openGroupModal();
 }
 
-// 加入小组
+// 加入小组（通过邀请链接数据）
 function joinGroup() {
   var codeEl = document.getElementById('join-code');
-  // binId 是大小写敏感的，不要转大写
   var codeVal = (codeEl ? codeEl.value.trim() : '');
-  if (!codeVal || codeVal.length < 4) { showToast('请输入正确的小组码（至少4位）'); return; }
+  if (!codeVal) { showToast('请输入邀请链接或小组码'); return; }
+  
   var myName = prompt('给自己起个昵称（同学会看到）：', '小' + ['明','红','强','美','亮','华','杰','雪'][Math.floor(Math.random()*8)]).trim();
   if (!myName) return;
   myName = myName.substring(0, 10);
   _gcMyName = myName;
 
-  // 直接查询云端，不预设任何数据
-  cloudGet(codeVal, function(data) {
-    if (data && data.code && data.name && data.name !== '学习小组') {
-      // 真实小组存在
-      var g = data;
-      if (g.members.indexOf(myName) === -1) g.members.push(myName);
-      g.binId = codeVal;
-      setGroupData(g);
-      cloudPut(codeVal, g, function(){});
-      showToast('加入小组「' + g.name + '」成功！你是第' + g.members.length + '名成员');
-      refreshGroupBadge();
-      openGroupCenterModal();
-    } else {
-      // 小组不存在
-      showToast('❌ 小组码「' + codeVal + '」不存在，请检查是否输错');
-    }
-  });
+  // 尝试解析为邀请链接数据（以 ?g= 开头）
+  var inviteData = null;
+  if (codeVal.indexOf('?g=') > -1 || codeVal.indexOf('g=') === 0) {
+    try {
+      var encoded = codeVal.replace(/^.*g=/, '');
+      var json = decodeURIComponent(atob(encoded));
+      inviteData = JSON.parse(json);
+    } catch(e) {}
+  }
+
+  if (inviteData && inviteData.n) {
+    // 从邀请链接加入
+    var g = {
+      code: makeCode(),
+      name: inviteData.n,
+      members: inviteData.m || [],
+      created: inviteData.c || Date.now(),
+      questions: inviteData.q || [],
+      revisions: inviteData.r || [],
+      chat: inviteData.h || []
+    };
+    if (g.members.indexOf(myName) === -1) g.members.push(myName);
+    setGroupData(g);
+    showToast('加入小组「' + g.name + '」成功！你是第' + g.members.length + '名成员');
+    refreshGroupBadge();
+    openGroupCenterModal();
+  } else {
+    showToast('❌ 无效的邀请链接，请检查是否复制完整');
+  }
 }
 
-// 刷新小组徽章
 function refreshGroupBadge() {
   var btn = document.getElementById('btn-group');
   if (!btn) return;
@@ -1643,316 +1629,6 @@ function refreshGroupBadge() {
   }
 }
 
-// 打开学习圈（群聊+题库+修订）
-function openGroupQBank() {
-  closeGroupModal();
-  openGroupCenterModal();
-}
-
-function openGroupCenterModal() {
-  var g = getGroupData();
-  if (!g) return;
-  _gcMyName = g.members[0];
-  var m = document.getElementById('group-center-modal');
-  var o = document.getElementById('qbank-overlay'); // 复用 qbank-overlay
-  if (m) m.classList.add('show');
-  if (o) o.classList.add('show');
-  switchGCTab('qbank');
-}
-
-// tab 切换
-function switchGCTab(tab) {
-  var tabs = document.querySelectorAll('.gc-tab');
-  tabs.forEach(function(t){ t.classList.remove('active'); });
-  var activeTab = document.querySelector('.gc-tab[data-tab="'+tab+'"]');
-  if (activeTab) activeTab.classList.add('active');
-  if (tab === 'qbank') renderQBankTab();
-  else if (tab === 'chat') renderChatTab();
-  else if (tab === 'revs') renderRevsTab();
-}
-
-// ===== 题库 Tab =====
-function renderQBankTab() {
-  var body = document.getElementById('gc-body');
-  var footer = document.getElementById('gc-footer');
-  if (!body) return;
-  var g = getGroupData();
-  if (!g) return;
-  _gcBinId = g.binId;
-
-  var qs = g.questions || [];
-  var cats = { math:'🔢',chinese:'📖',english:'🔤',science:'🔬',puzzle:'🧩',other:'❓' };
-  var catNames = { math:'数学',chinese:'语文',english:'英语',science:'科学',puzzle:'趣味题',other:'其他' };
-
-  if (qs.length === 0) {
-    body.innerHTML = '<div style="text-align:center;padding:30px 0"><div style="font-size:48px;margin-bottom:12px">📝</div><div style="font-size:15px;color:#999">还没有共享的题目</div><div style="font-size:13px;color:#bbb;margin-top:4px">快来贡献第一道吧！</div></div>';
-  } else {
-    body.innerHTML = '<div class="gc-list">' + qs.map(function(q, i) {
-      var revBadge = '';
-      var pending = (g.revisions||[]).some(function(r){ return r.qId===q.id && r.status==='pending'; });
-      if (pending) revBadge = '<span style="font-size:11px;background:#FEF3C7;color:#D97706;padding:1px 6px;border-radius:8px;margin-left:4px">待审</span>';
-      return '<div class="qbank-item" id="qi-'+i+'">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center">' +
-          '<span class="qbank-cat">' + (cats[q.cat]||'❓') + ' ' + (catNames[q.cat]||'') + '</span>' +
-          '<span style="font-size:11px;color:#bbb">' + escHtml(q.author||'') + '</span>' +
-        '</div>' +
-        '<div class="qbank-q" style="margin-top:6px">' + escHtml(q.q) + '</div>' +
-        (q.a ? '<div class="qbank-a">答案：' + escHtml(q.a) + '</div>' : '') +
-        '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">' +
-          '<button class="gc-action-btn" onclick="proposeRevision('+i+')">✏️ 修订</button>' +
-          (revBadge ? '<span style="font-size:12px;color:#D97706;line-height:28px">修订待审中</span>' : '') +
-        '</div>' +
-      '</div>';
-    }).join('') + '</div>';
-  }
-  footer.innerHTML = '<button class="primary-btn" onclick="openAddQuestion()" style="width:100%;padding:10px;font-size:14px;border-radius:12px;">➕ 贡献一道题</button>';
-}
-
-function openAddQuestion() {
-  var q = document.getElementById('qadd-q');
-  var a = document.getElementById('qadd-a');
-  if (q) q.value = '';
-  if (a) a.value = '';
-  openModal('qadd');
-  if (q) q.focus();
-}
-
-function submitSharedQuestion() {
-  var catEl = document.getElementById('qadd-cat');
-  var qEl = document.getElementById('qadd-q');
-  var aEl = document.getElementById('qadd-a');
-  var cat = catEl ? catEl.value : 'other';
-  var q = qEl ? qEl.value.trim() : '';
-  var a = aEl ? aEl.value.trim() : '';
-  if (!q) { showToast('请输入题目'); return; }
-  var g = getGroupData();
-  var myName = _gcMyName || (g ? g.members[0] : '我');
-  var catNames = { math:'数学',chinese:'语文',english:'英语',science:'科学',puzzle:'趣味题',other:'其他' };
-  var item = { id: Date.now(), cat: cat, catName: catNames[cat]||'其他', q: q, a: a, author: myName, time: new Date().toLocaleDateString('zh-CN'), likes:0 };
-  g.questions = g.questions || [];
-  g.questions.unshift(item);
-  setGroupData(g);
-  cloudPut(g.binId, g, function(){});
-  closeQAdd();
-  showToast('题目已共享！📤');
-  renderQBankTab();
-}
-
-// ===== 修订 Tab =====
-function proposeRevision(idx) {
-  var g = getGroupData();
-  var qs = g.questions || [];
-  var q = qs[idx];
-  if (!q) return;
-  var newQ = prompt('请输入修订后的题目：', q.q);
-  if (!newQ || newQ.trim() === q.q.trim()) return;
-  var newA = prompt('请输入修订后的答案（可与原答案相同）：', q.a || '');
-  var myName = _gcMyName || g.members[0];
-  var rev = {
-    id: Date.now(), qId: q.id, idx: idx,
-    oldQ: q.q, oldA: q.a || '',
-    newQ: newQ.trim(), newA: newA ? newA.trim() : '',
-    proposer: myName, author: q.author,
-    status: 'pending', time: new Date().toLocaleDateString('zh-CN')
-  };
-  g.revisions = g.revisions || [];
-  g.revisions.unshift(rev);
-  setGroupData(g);
-  cloudPut(g.binId, g, function(){});
-  showToast('修订已提交，等待「' + q.author + '」审阅 🔔');
-  renderQBankTab();
-  refreshRevBadge(g);
-}
-
-function renderRevsTab() {
-  var body = document.getElementById('gc-body');
-  var footer = document.getElementById('gc-footer');
-  if (!body) return;
-  var g = getGroupData();
-  if (!g) return;
-  var revs = g.revisions || [];
-  var myName = _gcMyName || g.members[0];
-
-  if (revs.length === 0) {
-    body.innerHTML = '<div style="text-align:center;padding:30px 0"><div style="font-size:48px;margin-bottom:12px">🔔</div><div style="font-size:15px;color:#999">暂无修订申请</div><div style="font-size:13px;color:#bbb;margin-top:4px">对题目有意见？点「✏️ 修订」提交修改</div></div>';
-    footer.innerHTML = '<button class="ghost-btn" onclick="closeQBank()">关闭</button>';
-    return;
-  }
-
-  var pending = revs.filter(function(r){ return r.status==='pending'; });
-  var done = revs.filter(function(r){ return r.status!=='pending'; });
-
-  body.innerHTML = (pending.length > 0 ? '<div style="margin-bottom:16px"><div style="font-size:12px;color:#D97706;font-weight:600;margin-bottom:8px">⏳ 待审阅（' + pending.length + '）</div>' + pending.map(function(r) {
-    var isMine = r.proposer === myName;
-    var isAuthor = r.author === myName;
-    var canApprove = isAuthor;
-    return '<div class="rev-item' + (isMine ? ' rev-mine' : '') + '">' +
-      '<div class="rev-meta">修订申请 · ' + escHtml(r.proposer) + ' → ' + escHtml(r.author) + ' · ' + r.time + (isMine ? ' <span style="color:#667EEA">(你的申请)</span>' : '') + '</div>' +
-      '<div class="rev-row"><span class="rev-label">原题目：</span><span class="rev-old">' + escHtml(r.oldQ) + '</span></div>' +
-      '<div class="rev-row"><span class="rev-label">→ 新题目：</span><span class="rev-new">' + escHtml(r.newQ) + '</span></div>' +
-      (r.oldA || r.newA ? '<div class="rev-row"><span class="rev-label">答案变更：</span>' + (r.oldA!==r.newA ? escHtml(r.oldA||'无') + ' → ' + escHtml(r.newA||'无') : escHtml(r.newA||'无')) + '</div>' : '') +
-      (canApprove ? '<div style="display:flex;gap:8px;margin-top:8px">' +
-        '<button class="gc-approve-btn" onclick="approveRevision(' + r.id + ')">✅ 批准</button>' +
-        '<button class="gc-reject-btn" onclick="rejectRevision(' + r.id + ')">✕ 拒绝</button>' +
-      '</div>' : '') +
-    '</div>';
-  }).join('') + '</div>' : '') +
-
-  (done.length > 0 ? '<div><div style="font-size:12px;color:#888;font-weight:600;margin-bottom:8px">✅ 已处理</div>' + done.map(function(r) {
-    return '<div class="rev-item rev-done">' +
-      '<div class="rev-meta">' + escHtml(r.proposer) + ' → ' + escHtml(r.oldQ).substring(0,20) + '... · ' + r.status +
-      '</div>' +
-    '</div>';
-  }).join('') + '</div>' : '');
-  footer.innerHTML = '<button class="ghost-btn" onclick="closeQBank()">关闭</button>';
-}
-
-function approveRevision(revId) {
-  var g = getGroupData();
-  var revs = g.revisions || [];
-  var rev = revs.find(function(r){ return r.id === revId; });
-  if (!rev) return;
-  rev.status = 'approved';
-  // 更新题目
-  var qs = g.questions || [];
-  var qi = qs.findIndex(function(q){ return q.id === rev.qId; });
-  if (qi >= 0) {
-    qs[qi].q = rev.newQ;
-    qs[qi].a = rev.newA;
-    qs[qi].revised = true;
-  }
-  setGroupData(g);
-  cloudPut(g.binId, g, function(){});
-  showToast('已批准修订！题目已更新 ✨');
-  refreshRevBadge(g);
-  renderRevsTab();
-}
-
-function rejectRevision(revId) {
-  var g = getGroupData();
-  var revs = g.revisions || [];
-  var rev = revs.find(function(r){ return r.id === revId; });
-  if (!rev) return;
-  rev.status = 'rejected';
-  setGroupData(g);
-  cloudPut(g.binId, g, function(){});
-  showToast('已拒绝该修订');
-  refreshRevBadge(g);
-  renderRevsTab();
-}
-
-function refreshRevBadge(g) {
-  if (!g) g = getGroupData();
-  var pending = (g.revisions||[]).filter(function(r){ return r.status==='pending'; }).length;
-  var badge = document.getElementById('gc-rev-badge');
-  if (badge) {
-    if (pending > 0) {
-      badge.textContent = pending;
-      badge.style.display = '';
-    } else {
-      badge.style.display = 'none';
-    }
-  }
-}
-
-// ===== 群聊 Tab =====
-function renderChatTab() {
-  var body = document.getElementById('gc-body');
-  var footer = document.getElementById('gc-footer');
-  if (!body) return;
-  var g = getGroupData();
-  if (!g) return;
-  _gcBinId = g.binId;
-
-  var msgs = g.chat || [];
-  var myName = _gcMyName || g.members[0];
-
-  if (msgs.length === 0) {
-    body.innerHTML = '<div class="gc-chat-list" id="gc-chat-list"><div style="text-align:center;padding:40px 0"><div style="font-size:48px;margin-bottom:12px">💬</div><div style="font-size:15px;color:#999">群里还没人说话</div><div style="font-size:13px;color:#bbb;margin-top:4px">发起讨论的第一个就是你！</div></div></div>';
-  } else {
-    body.innerHTML = '<div class="gc-chat-list" id="gc-chat-list">' + msgs.map(function(m) {
-      var isMe = m.from === myName;
-      return '<div class="gc-msg' + (isMe ? ' gc-msg-me' : '') + '">' +
-        (isMe ? '' : '<span class="gc-msg-from">' + escHtml(m.from) + '</span>') +
-        '<div class="gc-msg-bubble">' + escHtml(m.text) + '</div>' +
-        '<span class="gc-msg-time">' + m.time.substring(5,16) + '</span>' +
-      '</div>';
-    }).join('') + '</div>';
-    setTimeout(function(){ var l=document.getElementById('gc-chat-list'); if(l) l.scrollTop = l.scrollHeight; }, 50);
-  }
-
-  footer.innerHTML = '<div class="gc-chat-input">' +
-    '<input id="gc-chat-input" placeholder="说点什么..." onkeydown="if(event.key===\'Enter\') sendGCMessage()" style="flex:1;padding:10px 14px;border:1.5px solid #E0E4F0;border-radius:20px;font-size:14px;outline:none" />' +
-    '<button class="primary-btn" onclick="sendGCMessage()" style="padding:10px 16px;border-radius:20px;flex-shrink:0">发送</button>' +
-  '</div>';
-}
-
-function sendGCMessage() {
-  var inp = document.getElementById('gc-chat-input');
-  if (!inp || !inp.value.trim()) return;
-  var text = inp.value.trim();
-  inp.value = '';
-  var g = getGroupData();
-  var myName = _gcMyName || g.members[0];
-  var msg = { id: Date.now(), from: myName, text: text, time: new Date().toLocaleString('zh-CN') };
-  g.chat = g.chat || [];
-  g.chat.push(msg);
-  if (g.chat.length > 200) g.chat = g.chat.slice(-200);
-  setGroupData(g);
-  cloudPut(g.binId, g, function(){});
-  renderChatTab();
-}
-
-// 启动定时刷新（每次打开弹窗时）
-var _gcPollInterval = null;
-function startGCPoll() {
-  stopGCPoll();
-  _gcPollInterval = setInterval(function() {
-    if (!document.getElementById('group-center-modal') || !document.getElementById('group-center-modal').classList.contains('show')) {
-      stopGCPoll(); return;
-    }
-    var g = getGroupData();
-    if (!g || !g.binId) return;
-    cloudGet(g.binId, function(data) {
-      if (data && data.code && data.chat && data.questions) {
-        var isNewChat = (data.chat||[]).length !== ((g.chat)||[]).length;
-        var isNewQ = (data.questions||[]).length !== ((g.questions)||[]).length;
-        if (isNewChat || isNewQ) {
-          data.binId = g.binId;
-          setGroupData(data);
-          var activeTab = document.querySelector('.gc-tab.active');
-          var tab = activeTab ? activeTab.getAttribute('data-tab') : 'qbank';
-          if (tab === 'qbank') renderQBankTab();
-          else if (tab === 'chat') renderChatTab();
-          else if (tab === 'revs') renderRevsTab();
-        }
-      }
-    });
-  }, 5000);
-}
-function stopGCPoll() {
-  if (_gcPollInterval) { clearInterval(_gcPollInterval); _gcPollInterval = null; }
-}
-
-// 修改 openGroupCenterModal 入口，同时启动轮询
-var _orig_openGroupCenterModal = openGroupCenterModal;
-openGroupCenterModal = function() {
-  _orig_openGroupCenterModal();
-  startGCPoll();
-};
-// 修改关闭逻辑，停止轮询
-var _orig_closeQBank = (typeof closeQBank !== 'undefined' && closeQBank) ? closeQBank : function(){};
-closeQBank = function() {
-  stopGCPoll();
-  var m = document.getElementById('group-center-modal');
-  var o = document.getElementById('qbank-overlay');
-  if (m) m.classList.remove('show');
-  if (o) o.classList.remove('show');
-};
-// 兜底：确保 closeQBank 在全局存在
-if (typeof window.closeQBank === 'undefined') window.closeQBank = closeQBank;
-
-// ===== 打开小组弹窗（创建/加入界面）=====
 function openGroupModal() {
   var g = getGroupData();
   var body = document.getElementById('group-body');
@@ -1962,40 +1638,47 @@ function openGroupModal() {
     body.innerHTML = '<div class="group-actions">' +
       '<button class="group-action-btn btn-g-create" onclick="createGroup()">🏆 创建学习小组</button>' +
       '<div style="text-align:center;color:#bbb;font-size:12px;margin:4px 0">— 或者加入已有小组 —</div>' +
-      '<div class="group-join-row"><input id="join-code" maxlength="20" placeholder="输入小组码或扫码" style="letter-spacing:1px" /></div>' +
+      '<div class="group-join-row"><input id="join-code" placeholder="粘贴邀请链接" style="font-size:13px" /></div>' +
       '<button class="group-action-btn btn-g-join" onclick="joinGroup()">🚀 加入小组</button>' +
-      '<div style="font-size:11px;color:#ccc;text-align:center;margin-top:6px">小组码由创建者分享，支持扫码加入</div>' +
+      '<div style="font-size:11px;color:#ccc;text-align:center;margin-top:6px">让创建者分享邀请链接给你</div>' +
     '</div>';
     footer.innerHTML = '<button class="ghost-btn" onclick="closeGroupModal()">关闭</button>';
   } else {
     var members = g.members || [];
     var memberChips = members.map(function(m,i){ return '<span class="member-chip" style="background:'+(GROUP_COLORS[i%GROUP_COLORS.length])+'22;color:'+GROUP_COLORS[i%GROUP_COLORS.length]+'">'+escHtml(m)+'</span>'; }).join('');
-    // 使用 binId 作为真正的小组码（如果存在），否则用 code
-    var shareCode = g.binId || g.code;
-    var qrUrl = location.href.split('?')[0] + '?join=' + shareCode;
+    var inviteLink = makeInviteLink(g);
     body.innerHTML = '<div class="in-group-badge"><div class="gname">🏆 ' + escHtml(g.name) + '</div><div class="gmember">共 ' + members.length + ' 名成员</div></div>' +
       '<div class="group-members">' + memberChips + '</div>' +
       '<div class="group-code-display">' +
-        '<div>分享小组码，让同学加入：</div>' +
-        '<div class="code" style="font-size:13px;word-break:break-all;padding:10px">' + escHtml(shareCode) + '</div>' +
-        '<div class="hint">截图发给同学，或让他们扫码</div>' +
+        '<div>复制邀请链接给同学：</div>' +
+        '<div class="code" style="font-size:11px;word-break:break-all;padding:8px;user-select:all">' + escHtml(inviteLink || '生成失败') + '</div>' +
+        '<button class="gc-action-btn" onclick="copyInviteLink()" style="margin-top:8px">📋 复制链接</button>' +
       '</div>' +
-      '<div class="group-qr" id="group-qr"></div>' +
       '<div class="group-actions">' +
         '<button class="group-action-btn btn-g-qbank" onclick="openGroupQBank()">📚 学习圈（题库+群聊+修订）</button>' +
-        '<button class="group-action-btn btn-g-duel" onclick="startDuel()">⚔️ 知识对战</button>' +
         '<button class="group-action-btn btn-g-leave" onclick="leaveGroup()">🚪 退出小组</button>' +
       '</div>';
     footer.innerHTML = '<button class="ghost-btn" onclick="closeGroupModal()">关闭</button>';
-    setTimeout(function(){
-      var qrDiv = document.getElementById('group-qr');
-      if (qrDiv) {
-        qrDiv.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(qrUrl) + '&bgcolor=FFFFFF&color=4F46E5" width="160" height="160" alt="小组二维码" style="border-radius:12px;border:1px solid #eee">';
-      }
-    }, 80);
   }
   openModal('group');
 }
+
+function copyInviteLink() {
+  var g = getGroupData();
+  if (!g) return;
+  var link = makeInviteLink(g);
+  if (!link) { showToast('生成链接失败'); return; }
+  try {
+    navigator.clipboard.writeText(link).then(function(){
+      showToast('邀请链接已复制！发给同学即可加入');
+    }).catch(function(){
+      showToast('复制失败，请手动复制链接');
+    });
+  } catch(e) {
+    showToast('复制失败，请手动复制链接');
+  }
+}
+
 function closeGroupModal() { closeModal('group'); }
 
 function leaveGroup() {
@@ -2006,23 +1689,179 @@ function leaveGroup() {
   closeGroupModal();
 }
 
-// ===== 检查URL参数加入小组 =====
+// 检查URL参数加入小组
 function checkJoinParam() {
-  var params = new URLSearchParams(location.search);
-  var joinCode = params.get('join');
-  if (joinCode && !getGroupData()) {
+  var invite = parseInviteLink();
+  if (invite && !getGroupData()) {
     setTimeout(function() {
-      var codeEl = document.getElementById('join-code');
-      if (codeEl) { codeEl.value = joinCode; joinGroup(); }
-    }, 800);
+      var myName = prompt('检测到小组邀请！给自己起个昵称：', '小' + ['明','红','强','美','亮','华','杰','雪'][Math.floor(Math.random()*8)]);
+      if (!myName || !myName.trim()) return;
+      myName = myName.trim().substring(0, 10);
+      _gcMyName = myName;
+      var g = {
+        code: makeCode(),
+        name: invite.n,
+        members: invite.m || [],
+        created: invite.c || Date.now(),
+        questions: invite.q || [],
+        revisions: invite.r || [],
+        chat: invite.h || []
+      };
+      if (g.members.indexOf(myName) === -1) g.members.push(myName);
+      setGroupData(g);
+      showToast('加入小组「' + g.name + '」成功！');
+      refreshGroupBadge();
+      // 清理URL参数
+      history.replaceState({}, document.title, location.href.split('?')[0]);
+    }, 500);
   }
 }
 
-// ===== 加题弹窗（复用旧的）=====
+// 打开学习圈
+function openGroupQBank() {
+  closeGroupModal();
+  openGroupCenterModal();
+}
+
+function openGroupCenterModal() {
+  var g = getGroupData();
+  if (!g) return;
+  _gcMyName = g.members[0];
+  switchGCTab('qbank');
+}
+
+function closeQBank() {
+  var m = document.getElementById('group-center-modal');
+  var o = document.getElementById('qbank-overlay');
+  if (m) m.classList.remove('show');
+  if (o) o.classList.remove('show');
+}
+if (typeof window.closeQBank === 'undefined') window.closeQBank = closeQBank;
+
+// Tab 切换
+function switchGCTab(tab) {
+  var m = document.getElementById('group-center-modal');
+  var o = document.getElementById('qbank-overlay');
+  if (m) m.classList.add('show');
+  if (o) o.classList.add('show');
+  var body = document.getElementById('gc-body');
+  var footer = document.getElementById('gc-footer');
+  if (tab === 'qbank') renderQBankTab(body, footer);
+  else if (tab === 'chat') renderChatTab(body, footer);
+  else if (tab === 'revs') renderRevsTab(body, footer);
+}
+
+// 题库 Tab
+function renderQBankTab(body, footer) {
+  if (!body) body = document.getElementById('gc-body');
+  if (!footer) footer = document.getElementById('gc-footer');
+  if (!body) return;
+  var g = getGroupData();
+  if (!g) return;
+  var qs = g.questions || [];
+  var cats = { math:'🔢',chinese:'📖',english:'🔤',science:'🔬',puzzle:'🧩',other:'❓' };
+  if (qs.length === 0) {
+    body.innerHTML = '<div style="text-align:center;padding:30px 0"><div style="font-size:48px;margin-bottom:12px">📝</div><div style="font-size:15px;color:#999">还没有共享的题目</div></div>';
+  } else {
+    body.innerHTML = '<div class="gc-list">' + qs.map(function(q, i) {
+      return '<div class="qbank-item">' +
+        '<span class="qbank-cat">' + (cats[q.cat]||'❓') + ' ' + (q.catName||'') + '</span>' +
+        '<div class="qbank-q" style="margin-top:6px">' + escHtml(q.q) + '</div>' +
+        (q.a ? '<div class="qbank-a">答案：' + escHtml(q.a) + '</div>' : '') +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  footer.innerHTML = '<div class="gc-tabs" style="padding:0;border:none">' +
+    '<button class="gc-tab active" onclick="switchGCTab('qbank')">📚 题库</button>' +
+    '<button class="gc-tab" onclick="switchGCTab('chat')">💬 群聊</button>' +
+    '<button class="gc-tab" onclick="switchGCTab('revs')">🔔 修订</button>' +
+  '</div><button class="primary-btn" onclick="openAddQuestion()" style="width:100%;margin-top:8px">➕ 贡献一道题</button>';
+}
+
+// 群聊 Tab
+function renderChatTab(body, footer) {
+  if (!body) body = document.getElementById('gc-body');
+  if (!footer) footer = document.getElementById('gc-footer');
+  if (!body) return;
+  var g = getGroupData();
+  if (!g) return;
+  var msgs = g.chat || [];
+  var myName = _gcMyName || g.members[0];
+  if (msgs.length === 0) {
+    body.innerHTML = '<div style="text-align:center;padding:40px 0"><div style="font-size:48px;margin-bottom:12px">💬</div><div style="font-size:15px;color:#999">群里还没人说话</div></div>';
+  } else {
+    body.innerHTML = '<div class="gc-chat-list">' + msgs.map(function(m) {
+      var isMe = m.from === myName;
+      return '<div class="gc-msg' + (isMe ? ' gc-msg-me' : '') + '">' +
+        (isMe ? '' : '<span class="gc-msg-from">' + escHtml(m.from) + '</span>') +
+        '<div class="gc-msg-bubble">' + escHtml(m.text) + '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  footer.innerHTML = '<div class="gc-tabs" style="padding:0;border:none">' +
+    '<button class="gc-tab" onclick="switchGCTab('qbank')">📚 题库</button>' +
+    '<button class="gc-tab active" onclick="switchGCTab('chat')">💬 群聊</button>' +
+    '<button class="gc-tab" onclick="switchGCTab('revs')">🔔 修订</button>' +
+  '</div><div class="gc-chat-input" style="margin-top:8px">' +
+    '<input id="gc-chat-input" placeholder="说点什么..." style="flex:1;padding:10px 14px;border:1.5px solid #E0E4F0;border-radius:20px;font-size:14px" />' +
+    '<button class="primary-btn" onclick="sendGCMessage()" style="padding:10px 16px;border-radius:20px">发送</button>' +
+  '</div>';
+}
+
+function sendGCMessage() {
+  var inp = document.getElementById('gc-chat-input');
+  if (!inp || !inp.value.trim()) return;
+  var text = inp.value.trim();
+  var g = getGroupData();
+  var myName = _gcMyName || g.members[0];
+  g.chat = g.chat || [];
+  g.chat.push({ from: myName, text: text, time: Date.now() });
+  if (g.chat.length > 100) g.chat = g.chat.slice(-100);
+  setGroupData(g);
+  renderChatTab();
+}
+
+// 修订 Tab
+function renderRevsTab(body, footer) {
+  if (!body) body = document.getElementById('gc-body');
+  if (!footer) footer = document.getElementById('gc-footer');
+  if (!body) return;
+  body.innerHTML = '<div style="text-align:center;padding:40px 0"><div style="font-size:48px;margin-bottom:12px">🔔</div><div style="font-size:15px;color:#999">修订功能开发中...</div></div>';
+  footer.innerHTML = '<div class="gc-tabs" style="padding:0;border:none">' +
+    '<button class="gc-tab" onclick="switchGCTab('qbank')">📚 题库</button>' +
+    '<button class="gc-tab" onclick="switchGCTab('chat')">💬 群聊</button>' +
+    '<button class="gc-tab active" onclick="switchGCTab('revs')">🔔 修订</button>' +
+  '</div>';
+}
+
+function openAddQuestion() {
+  var q = document.getElementById('qadd-q');
+  var a = document.getElementById('qadd-a');
+  if (q) q.value = '';
+  if (a) a.value = '';
+  openModal('qadd');
+}
+
 function closeQAdd() { closeModal('qadd'); }
 
-// ===== 群聊输入框回车发送 =====
-// (已在上方 renderChatTab 中绑定)
+function submitSharedQuestion() {
+  var catEl = document.getElementById('qadd-cat');
+  var qEl = document.getElementById('qadd-q');
+  var aEl = document.getElementById('qadd-a');
+  var cat = catEl ? catEl.value : 'other';
+  var q = qEl ? qEl.value.trim() : '';
+  var a = aEl ? qEl.value.trim() : '';
+  if (!q) { showToast('请输入题目'); return; }
+  var g = getGroupData();
+  var myName = _gcMyName || g.members[0];
+  var catNames = { math:'数学',chinese:'语文',english:'英语',science:'科学',puzzle:'趣味题',other:'其他' };
+  g.questions = g.questions || [];
+  g.questions.unshift({ id: Date.now(), cat: cat, catName: catNames[cat]||'其他', q: q, a: a, author: myName, time: new Date().toLocaleDateString('zh-CN') });
+  setGroupData(g);
+  closeQAdd();
+  showToast('题目已添加！');
+  switchGCTab('qbank');
+}
 
 // ====================== 知识对战 ======================
 var DUEL = { questions: [], current: 0, answers: [], score: 0, startTime: 0 };
