@@ -1934,6 +1934,8 @@ closeQBank = function() {
   if (m) m.classList.remove('show');
   if (o) o.classList.remove('show');
 };
+// 兜底：确保 closeQBank 在全局存在
+if (typeof window.closeQBank === 'undefined') window.closeQBank = closeQBank;
 
 function closeGroupModal() { closeModal('group'); }
 
