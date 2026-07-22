@@ -1569,13 +1569,27 @@ function createGroup() {
   var g = { code: code, name: gname, members: [myName], created: Date.now(), questions:[], revisions:[], chat:[] };
   _gcMyName = myName;
 
-  setGroupData(g);
   // 写入云端
   fetch(JSONBIN_BASE, { method:'POST', headers:{'Content-Type':'application/json'}, mode:'cors', body:JSON.stringify(g) })
   .then(function(r){ return r.json(); })
-  .then(function(d){ var bid = d.record ? d.record.id : (d.metadata ? d.metadata.id : null); if(bid){ g.binId=bid; setGroupData(g); } })
-  .catch(function(){});
-  showToast('小组「' + gname + '」创建成功！');
+  .then(function(d){
+    var bid = d.record ? d.record.id : (d.metadata ? d.metadata.id : null);
+    if(bid){
+      g.binId = bid;
+      // 更新云端数据，加入 binId
+      g.binId = bid;
+      fetch(JSONBIN_BASE + '/' + bid, { method:'PUT', headers:{'Content-Type':'application/json'}, mode:'cors', body:JSON.stringify(g) }).catch(function(){});
+      setGroupData(g);
+      showToast('小组「' + gname + '」创建成功！');
+    } else {
+      showToast('小组已创建（离线模式）');
+    }
+  })
+  .catch(function(){
+    g.binId = null;
+    setGroupData(g);
+    showToast('小组已创建（离线模式）');
+  });
   refreshGroupBadge();
   openGroupCenterModal();
 }
@@ -1583,29 +1597,30 @@ function createGroup() {
 // 加入小组
 function joinGroup() {
   var codeEl = document.getElementById('join-code');
-  var codeVal = (codeEl ? codeEl.value.trim().toUpperCase() : '');
+  // binId 是大小写敏感的，不要转大写
+  var codeVal = (codeEl ? codeEl.value.trim() : '');
   if (!codeVal || codeVal.length < 4) { showToast('请输入正确的小组码（至少4位）'); return; }
   var myName = prompt('给自己起个昵称（同学会看到）：', '小' + ['明','红','强','美','亮','华','杰','雪'][Math.floor(Math.random()*8)]).trim();
   if (!myName) return;
   myName = myName.substring(0, 10);
   _gcMyName = myName;
 
-  loadGroupBin({ binId: codeVal, code: codeVal, name:'学习小组', members:[myName] }, function(g, qs, revs, chat) {
-    if (g && g.code && g.members.length > 0 && g.name !== '学习小组') {
-      // 真实小组
+  // 直接查询云端，不预设任何数据
+  cloudGet(codeVal, function(data) {
+    if (data && data.code && data.name && data.name !== '学习小组') {
+      // 真实小组存在
+      var g = data;
       if (g.members.indexOf(myName) === -1) g.members.push(myName);
       g.binId = codeVal;
       setGroupData(g);
       cloudPut(codeVal, g, function(){});
       showToast('加入小组「' + g.name + '」成功！你是第' + g.members.length + '名成员');
+      refreshGroupBadge();
+      openGroupCenterModal();
     } else {
-      // 找不到，创建本地小组
-      var ng = { code: codeVal, name: '学习小组', members: [myName], created: Date.now(), binId: codeVal, questions:[], revisions:[], chat:[] };
-      setGroupData(ng);
-      showToast('已创建/加入「' + codeVal + '」（仅本机模式）');
+      // 小组不存在
+      showToast('❌ 小组码「' + codeVal + '」不存在，请检查是否输错');
     }
-    refreshGroupBadge();
-    openGroupCenterModal();
   });
 }
 
@@ -1955,12 +1970,14 @@ function openGroupModal() {
   } else {
     var members = g.members || [];
     var memberChips = members.map(function(m,i){ return '<span class="member-chip" style="background:'+(GROUP_COLORS[i%GROUP_COLORS.length])+'22;color:'+GROUP_COLORS[i%GROUP_COLORS.length]+'">'+escHtml(m)+'</span>'; }).join('');
-    var qrUrl = location.href.split('?')[0] + '?join=' + g.code;
+    // 使用 binId 作为真正的小组码（如果存在），否则用 code
+    var shareCode = g.binId || g.code;
+    var qrUrl = location.href.split('?')[0] + '?join=' + shareCode;
     body.innerHTML = '<div class="in-group-badge"><div class="gname">🏆 ' + escHtml(g.name) + '</div><div class="gmember">共 ' + members.length + ' 名成员</div></div>' +
       '<div class="group-members">' + memberChips + '</div>' +
       '<div class="group-code-display">' +
         '<div>分享小组码，让同学加入：</div>' +
-        '<div class="code">' + g.code + '</div>' +
+        '<div class="code" style="font-size:13px;word-break:break-all;padding:10px">' + escHtml(shareCode) + '</div>' +
         '<div class="hint">截图发给同学，或让他们扫码</div>' +
       '</div>' +
       '<div class="group-qr" id="group-qr"></div>' +
@@ -1996,7 +2013,7 @@ function checkJoinParam() {
   if (joinCode && !getGroupData()) {
     setTimeout(function() {
       var codeEl = document.getElementById('join-code');
-      if (codeEl) { codeEl.value = joinCode.toUpperCase(); joinGroup(); }
+      if (codeEl) { codeEl.value = joinCode; joinGroup(); }
     }, 800);
   }
 }
