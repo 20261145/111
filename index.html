@@ -1926,7 +1926,7 @@ openGroupCenterModal = function() {
   startGCPoll();
 };
 // 修改关闭逻辑，停止轮询
-var _orig_closeQBank = closeQBank || function(){};
+var _orig_closeQBank = (typeof closeQBank !== 'undefined' && closeQBank) ? closeQBank : function(){};
 closeQBank = function() {
   stopGCPoll();
   var m = document.getElementById('group-center-modal');
