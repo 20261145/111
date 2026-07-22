@@ -1472,11 +1472,13 @@ function countWordsEn(s) {
   return (s.trim().match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) || []).length;
 }
 
-// ====================== 学习小组 ======================
+// ====================== 学习小组（云端同步版）======================
+// 使用免费 JSONBin.io 中转，实现跨设备数据同步
 var GROUP_KEY = 'bdy_group';
 var QBANK_KEY = 'bdy_qbank_';
 var GROUP_MEMBERS = ['小明','小红','小强','小美','小亮','小华','小杰','小雪','小涛','小月'];
 var GROUP_COLORS = ['#667EEA','#F59E0B','#4CAF50','#EF4444','#8B5CF6','#EC4899','#06B6D4','#F97316'];
+var JSONBIN_BASE = 'https://api.jsonbin.io/v3/b';
 
 function getGroupData() { try { return JSON.parse(localStorage.getItem(GROUP_KEY)||'null'); } catch(e){ return null; } }
 function setGroupData(d) { localStorage.setItem(GROUP_KEY, JSON.stringify(d)); }
@@ -1491,96 +1493,161 @@ function makeCode() {
   for (var i = 0; i < 6; i++) r += chars[Math.floor(Math.random()*chars.length)];
   return r;
 }
-function makeGroupName() {
-  var adj = ['快乐','智慧','阳光','勇敢','梦想','星光','彩虹','飞扬'];
-  var noun = ['学习组','学霸队','挑战团','互助班','成长圈','进步队'];
-  return adj[Math.floor(Math.random()*adj.length)] + noun[Math.floor(Math.random()*noun.length)];
-}
-
-function openGroupModal() {
-  var g = getGroupData();
-  var body = document.getElementById('group-body');
-  var footer = document.getElementById('group-footer');
-  if (!body) return;
-  if (!g) {
-    // 未入组：显示创建/加入界面
-    body.innerHTML = '<div class="group-actions">' +
-      '<button class="group-action-btn btn-g-create" onclick="createGroup()">🏆 创建学习小组</button>' +
-      '<div style="text-align:center;color:#bbb;font-size:12px;margin:4px 0">— 或者加入已有小组 —</div>' +
-      '<div class="group-join-row"><input id="join-code" maxlength="6" placeholder="输入小组码（如A3B7C2）" /></div>' +
-      '<button class="group-action-btn btn-g-join" onclick="joinGroup()">🚀 加入小组</button>' +
-    '</div>';
-    footer.innerHTML = '<button class="ghost-btn" onclick="closeGroupModal()">关闭</button>';
-  } else {
-    // 已入组：显示小组信息 + 操作
-    var members = g.members || [];
-    var memberChips = members.map(function(m,i){ return '<span class="member-chip" style="background:'+(GROUP_COLORS[i%GROUP_COLORS.length])+'22;color:'+GROUP_COLORS[i%GROUP_COLORS.length]+'">'+escHtml(m)+'</span>'; }).join('');
-    var qrUrl = location.origin + location.pathname + '?join=' + g.code;
-    body.innerHTML = '<div class="in-group-badge"><div class="gname">🏆 ' + escHtml(g.name) + '</div><div class="gmember">共 ' + members.length + ' 名成员 · 小组码 ' + g.code + '</div></div>' +
-      '<div class="group-members">' + memberChips + '</div>' +
-      '<div class="group-code-display">' +
-        '<div>分享小组码，让同学加入：</div>' +
-        '<div class="code">' + g.code + '</div>' +
-        '<div class="hint">截图发给同学，或让他们扫码</div>' +
-      '</div>' +
-      '<div class="group-qr" id="group-qr"></div>' +
-      '<div class="group-actions">' +
-        '<button class="group-action-btn btn-g-qbank" onclick="openGroupQBank()">📚 共享题库（' + getQBank().length + '道）</button>' +
-        '<button class="group-action-btn btn-g-duel" onclick="startDuel()">⚔️ 知识对战</button>' +
-        '<button class="group-action-btn btn-g-leave" onclick="leaveGroup()">🚪 退出小组</button>' +
-      '</div>';
-    footer.innerHTML = '<button class="ghost-btn" onclick="closeGroupModal()">关闭</button>';
-    // 生成二维码
-    setTimeout(function(){
-      var qrDiv = document.getElementById('group-qr');
-      if (qrDiv) {
-        qrDiv.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(qrUrl) + '&bgcolor=FFFFFF&color=4F46E5" width="160" height="160" alt="小组二维码" style="border-radius:12px">';
-      }
-    }, 50);
-  }
-  openModal('group');
-}
-function closeGroupModal() { closeModal('group'); }
-function checkJoinParam() {
-  var params = new URLSearchParams(location.search);
-  var joinCode = params.get('join');
-  if (joinCode && !getGroupData()) {
-    setTimeout(function() {
-      var codeEl = document.getElementById('join-code');
-      if (codeEl) {
-        codeEl.value = joinCode.toUpperCase();
-        joinGroup();
-      }
-    }, 800);
-  }
+function showGroupLoading(body, msg) {
+  body.innerHTML = '<div style="text-align:center;padding:30px 0">' +
+    '<div style="font-size:40px">⏳</div>' +
+    '<div style="font-size:14px;color:#888;margin-top:10px">' + msg + '</div>' +
+    '<div class="magic-dots" style="justify-content:center;margin-top:14px"><span></span><span></span><span></span></div>' +
+  '</div>';
 }
 
 function createGroup() {
-  var code = makeCode();
   var myName = prompt('给自己起个昵称（同学会看到）：', '小' + ['明','红','强','美','亮','华','杰','雪'][Math.floor(Math.random()*8)]);
   if (!myName || !myName.trim()) return;
   myName = myName.trim().substring(0, 10);
-  var name = makeGroupName();
-  var g = { code: code, name: name, owner: myName, members: [myName], created: Date.now() };
-  setGroupData(g);
-  showToast('小组「' + name + '」创建成功！');
-  refreshGroupBadge();
-  openGroupModal();
+  var gname = prompt('给小组起个名字：', '快乐学习组');
+  if (!gname || !gname.trim()) gname = '快乐学习组';
+  gname = gname.trim().substring(0, 20);
+
+  var code = makeCode();
+  var g = { code: code, name: gname, members: [myName], created: Date.now() };
+  var body = document.getElementById('group-body');
+  if (!body) return;
+  showGroupLoading(body, '正在创建小组...');
+
+  fetch(JSONBIN_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(g),
+    mode: 'cors'
+  }).then(function(res) { return res.json(); })
+  .then(function(data) {
+    g.binId = data.record ? data.record.id : (data.metadata ? data.metadata.id : null);
+    setGroupData(g);
+    showToast('小组「' + gname + '」创建成功！');
+    refreshGroupBadge();
+    openGroupModal();
+  }).catch(function() {
+    g.binId = null;
+    setGroupData(g);
+    showToast('小组已创建（仅本机模式）');
+    refreshGroupBadge();
+    openGroupModal();
+  });
 }
 
 function joinGroup() {
-  var code = document.getElementById('join-code');
-  var codeVal = (code ? code.value.trim().toUpperCase() : '');
-  if (!codeVal || codeVal.length < 4) { showToast('请输入正确的小组码'); return; }
+  var codeEl = document.getElementById('join-code');
+  var codeVal = (codeEl ? codeEl.value.trim().toUpperCase() : '');
+  if (!codeVal || codeVal.length < 4) { showToast('请输入正确的小组码（至少4位）'); return; }
   var myName = prompt('给自己起个昵称（同学会看到）：', '小' + ['明','红','强','美','亮','华','杰','雪'][Math.floor(Math.random()*8)]);
   if (!myName || !myName.trim()) return;
   myName = myName.trim().substring(0, 10);
-  var g = { code: codeVal, name: '学习小组', owner: '', members: [myName], created: Date.now() };
-  setGroupData(g);
-  showToast('加入小组成功！你是第' + g.members.length + '名成员');
-  refreshGroupBadge();
-  openGroupModal();
+
+  var body = document.getElementById('group-body');
+  if (!body) return;
+  showGroupLoading(body, '正在加入小组「' + codeVal + '」...');
+
+  fetch(JSONBIN_BASE + '/' + codeVal + '/latest', {
+    method: 'GET',
+    headers: { 'X-Bin-Meta': 'false' },
+    mode: 'cors'
+  }).then(function(res) {
+    if (!res.ok) throw new Error('not_found');
+    return res.json();
+  }).then(function(data) {
+    var g = data;
+    if (!g || !g.code) throw new Error('invalid');
+    if (g.members.indexOf(myName) === -1) {
+      g.members.push(myName);
+      fetch(JSONBIN_BASE + '/' + codeVal, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(g),
+        mode: 'cors'
+      }).catch(function(){});
+    }
+    g.binId = codeVal;
+    setGroupData(g);
+    showToast('加入小组「' + g.name + '」成功！你是第' + g.members.length + '名成员');
+    refreshGroupBadge();
+    openGroupModal();
+  }).catch(function(err) {
+    var g = { code: codeVal, name: '学习小组', members: [myName], created: Date.now(), binId: codeVal };
+    setGroupData(g);
+    showToast('已创建/加入「' + codeVal + '」（仅本机模式）');
+    refreshGroupBadge();
+    openGroupModal();
+  });
 }
+
+function syncGroupFromCloud(callback) {
+  var g = getGroupData();
+  if (!g || !g.binId) { if (callback) callback(); return; }
+  fetch(JSONBIN_BASE + '/' + g.binId + '/latest', {
+    method: 'GET',
+    headers: { 'X-Bin-Meta': 'false' },
+    mode: 'cors'
+  }).then(function(res) {
+    if (!res.ok) return null;
+    return res.json();
+  }).then(function(data) {
+    if (data && data.code) {
+      data.binId = g.binId;
+      setGroupData(data);
+    }
+    if (callback) callback();
+  }).catch(function() {
+    if (callback) callback();
+  });
+}
+
+function openGroupModal() {
+  var body = document.getElementById('group-body');
+  var footer = document.getElementById('group-footer');
+  if (!body) return;
+  var g = getGroupData();
+  if (!g) {
+    body.innerHTML = '<div class="group-actions">' +
+      '<button class="group-action-btn btn-g-create" onclick="createGroup()">🏆 创建学习小组</button>' +
+      '<div style="text-align:center;color:#bbb;font-size:12px;margin:4px 0">— 或者加入已有小组 —</div>' +
+      '<div class="group-join-row"><input id="join-code" maxlength="20" placeholder="输入小组码或扫码" style="letter-spacing:1px" /></div>' +
+      '<button class="group-action-btn btn-g-join" onclick="joinGroup()">🚀 加入小组</button>' +
+      '<div style="font-size:11px;color:#ccc;text-align:center;margin-top:6px">小组码由创建者分享，支持扫码加入</div>' +
+    '</div>';
+    footer.innerHTML = '<button class="ghost-btn" onclick="closeGroupModal()">关闭</button>';
+    openModal('group');
+  } else {
+    syncGroupFromCloud(function() {
+      g = getGroupData();
+      var members = g.members || [];
+      var memberChips = members.map(function(m,i){ return '<span class="member-chip" style="background:'+(GROUP_COLORS[i%GROUP_COLORS.length])+'22;color:'+GROUP_COLORS[i%GROUP_COLORS.length]+'">'+escHtml(m)+'</span>'; }).join('');
+      var qrUrl = location.href.split('?')[0] + '?join=' + g.code;
+      body.innerHTML = '<div class="in-group-badge"><div class="gname">🏆 ' + escHtml(g.name) + '</div><div class="gmember">共 ' + members.length + ' 名成员</div></div>' +
+        '<div class="group-members">' + memberChips + '</div>' +
+        '<div class="group-code-display">' +
+          '<div>分享小组码，让同学加入：</div>' +
+          '<div class="code">' + g.code + '</div>' +
+          '<div class="hint">截图发给同学，或让他们扫码</div>' +
+        '</div>' +
+        '<div class="group-qr" id="group-qr"></div>' +
+        '<div class="group-actions">' +
+          '<button class="group-action-btn btn-g-qbank" onclick="openGroupQBank()">📚 共享题库（' + getQBank().length + '道）</button>' +
+          '<button class="group-action-btn btn-g-duel" onclick="startDuel()">⚔️ 知识对战</button>' +
+          '<button class="group-action-btn btn-g-leave" onclick="leaveGroup()">🚪 退出小组</button>' +
+        '</div>';
+      footer.innerHTML = '<button class="ghost-btn" onclick="closeGroupModal()">关闭</button>';
+      openModal('group');
+      setTimeout(function(){
+        var qrDiv = document.getElementById('group-qr');
+        if (qrDiv) {
+          qrDiv.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(qrUrl) + '&bgcolor=FFFFFF&color=4F46E5" width="160" height="160" alt="小组二维码" style="border-radius:12px;border:1px solid #eee">';
+        }
+      }, 80);
+    });
+  }
+}
+function closeGroupModal() { closeModal('group'); }
 
 function leaveGroup() {
   if (!confirm('确定要退出当前学习小组吗？')) return;
