@@ -1981,6 +1981,14 @@ function openGroupModal() {
 }
 function closeGroupModal() { closeModal('group'); }
 
+function leaveGroup() {
+  if (!confirm('确定要退出当前学习小组吗？')) return;
+  localStorage.removeItem(GROUP_KEY);
+  showToast('已退出小组');
+  refreshGroupBadge();
+  closeGroupModal();
+}
+
 // ===== 检查URL参数加入小组 =====
 function checkJoinParam() {
   var params = new URLSearchParams(location.search);
