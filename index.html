@@ -66,6 +66,7 @@
       border-radius: 12px;
       font-size: 18px;
       cursor: pointer;
+      position: relative;
       display: flex; align-items: center; justify-content: center;
       transition: transform 0.15s;
     }
@@ -840,6 +841,53 @@
       #magic-modal .magic-footer { padding: 4px 16px 16px; }
       #magic-modal .magic-footer button { padding: 8px 22px; font-size: 13px; }
     }
+    /* ===== 错题本 ===== */
+    #wrong-modal .wrong-body, #flag-modal .flag-body {
+      padding: 12px 16px 8px; max-height: 60vh; overflow-y: auto;
+    }
+    #wrong-modal .wrong-list { display: flex; flex-direction: column; gap: 10px; }
+    .wrong-item {
+      background: #F8F9FF; border-radius: 14px; padding: 12px 14px;
+      border-left: 4px solid #667EEA; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .wrong-item .wrong-cat {
+      font-size: 11px; background: #E8ECFF; color: #667EEA; padding: 2px 8px; border-radius: 8px;
+      white-space: nowrap; flex-shrink: 0; margin-top: 2px;
+    }
+    .wrong-item .wrong-info { flex: 1; min-width: 0; }
+    .wrong-item .wrong-q { font-size: 14px; color: #333; line-height: 1.5; word-break: break-word; }
+    .wrong-item .wrong-a { font-size: 12px; color: #888; margin-top: 4px; }
+    .wrong-item .wrong-meta { font-size: 11px; color: #bbb; margin-top: 3px; }
+    .wrong-item .wrong-del {
+      background: none; border: none; cursor: pointer; font-size: 16px; color: #ccc;
+      padding: 2px 4px; flex-shrink: 0;
+    }
+    .wrong-item .wrong-del:hover { color: #FF6B6B; }
+    .wrong-item.practiced { border-left-color: #4CAF50; background: #F0FFF4; }
+    .wrong-item.practiced .wrong-cat { background: #C8E6C9; color: #2E7D32; }
+    .wrong-footer { padding: 8px 16px 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .wrong-footer button { padding: 9px 18px; border: none; border-radius: 20px; font-size: 14px; cursor: pointer; }
+    .wrong-footer .primary-btn { background: linear-gradient(135deg, #667EEA, #764BA2); color: white; font-weight: 600; }
+    .wrong-footer .primary-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .wrong-footer .ghost-btn { background: #f0f0f0; color: #666; }
+    .wrong-footer .ghost-btn:hover { background: #e0e0e0; }
+    .field-label { font-size: 12px; color: #888; margin-bottom: 4px; font-weight: 500; }
+    .wrong-empty { text-align: center; padding: 20px 0; }
+    /* ===== 这题我不会按钮 ===== */
+    .wrong-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: #FFF3E0; border: 1.5px solid #FFE0B2;
+      font-size: 18px; cursor: pointer; flex-shrink: 0;
+      transition: all 0.2s; display: flex; align-items: center; justify-content: center;
+    }
+    .wrong-btn:hover { background: #FFE0B2; transform: scale(1.08); }
+    @media (max-width:480px) { .wrong-btn { width: 36px; height: 36px; font-size: 16px; } }
+    #btn-practice { width: auto; flex: 1; }
+    #btn-practice:not(:disabled) { animation: practicePulse 2s ease-in-out infinite; }
+    @keyframes practicePulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(102,126,234,0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(102,126,234,0); }
+    }
   </style>
 </head>
 <body>
@@ -852,6 +900,7 @@
   <span id="offline-badge" style="display:none;font-size:11px;background:#FFE0B2;color:#E65100;padding:2px 8px;border-radius:10px;flex-shrink:0">⚠️ 离线模式</span><!-- 已禁用 -->
     <span id="streak-badge" style="display:none;font-size:11px;background:linear-gradient(135deg,#FFB84D,#FF8A65);color:#fff;padding:2px 8px;border-radius:10px;flex-shrink:0;white-space:nowrap"></span>
   </div>
+  <button class="header-btn" id="btn-wrong" title="错题本">📒<span id="wrong-count" style="display:none;font-size:10px;position:absolute;top:-2px;right:-2px;background:#FF6B6B;color:#fff;border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;font-weight:700"></span></button>
   <button class="header-btn" id="btn-surprise" title="变个魔法">✨</button>
   <button class="header-btn" id="btn-image" title="AI生图">🎨</button>
   <button class="header-btn" id="btn-vision" title="识图">👁️</button>
@@ -881,6 +930,7 @@
 <div class="input-area">
   <textarea id="chat-input" placeholder="说点什么吧..." rows="1"></textarea>
   <button class="send-btn" id="send-btn">➤</button>
+  <button class="wrong-btn" id="btn-flag" onclick="openFlagModal()" title="这题我不会">❓</button>
 </div>
 
 <!-- 故事弹窗 -->
@@ -1140,6 +1190,58 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- ===== 错题本弹窗 ===== -->
+<div class="modal-overlay" id="wrong-overlay"></div>
+<div class="modal" id="wrong-modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">📒 错题本</div>
+  <div class="wrong-body" id="wrong-body">
+    <div class="wrong-empty" id="wrong-empty">
+      <div style="font-size:48px;margin-bottom:12px">📝</div>
+      <div style="font-size:15px;color:#999;margin-bottom:6px">还没有错题记录</div>
+      <div style="font-size:13px;color:#bbb">做作业或聊天时，遇到不会的题<br>点「❓这题我不会」记下来</div>
+    </div>
+    <div class="wrong-list" id="wrong-list"></div>
+  </div>
+  <div class="wrong-footer">
+    <button class="primary-btn" id="btn-practice" onclick="practiceWeakAreas()" disabled>🎯 开始复习</button>
+    <button class="ghost-btn" onclick="clearAllWrongTopics()">🗑️ 清空</button>
+    <button class="ghost-btn" onclick="closeWrongModal()">关闭</button>
+  </div>
+</div>
+
+<!-- ===== 标记错题弹窗 ===== -->
+<div class="modal-overlay" id="flag-overlay"></div>
+<div class="modal" id="flag-modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">📒 记录这道题</div>
+  <div class="flag-body">
+    <div style="font-size:13px;color:#888;margin-bottom:10px">把不会的题记下来，以后复习用</div>
+    <div style="margin-bottom:10px">
+      <div class="field-label">题目类型</div>
+      <select id="flag-category" style="width:100%;padding:8px 12px;border-radius:12px;border:1.5px solid #E0E4F0;font-size:14px;background:#FAFAFA">
+        <option value="math">🔢 数学</option>
+        <option value="chinese">📖 语文</option>
+        <option value="english">🔤 英语</option>
+        <option value="science">🔬 科学</option>
+        <option value="other">❓ 其他</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <div class="field-label">题目描述（简要说一下）</div>
+      <textarea id="flag-question" rows="2" style="width:100%;padding:8px 12px;border-radius:12px;border:1.5px solid #E0E4F0;font-size:14px;resize:none;background:#FAFAFA" placeholder="例如：3.5×2.8 等于多少？"></textarea>
+    </div>
+    <div style="margin-bottom:4px">
+      <div class="field-label">正确答案（选填）</div>
+      <textarea id="flag-answer" rows="1" style="width:100%;padding:8px 12px;border-radius:12px;border:1.5px solid #E0E4F0;font-size:14px;resize:none;background:#FAFAFA" placeholder="如果知道正确答案，写在这里..."></textarea>
+    </div>
+  </div>
+  <div class="wrong-footer">
+    <button class="primary-btn" onclick="submitWrongTopic()">✅ 记下来</button>
+    <button class="ghost-btn" onclick="closeFlagModal()">取消</button>
+  </div>
+</div>
+
 <!-- ===== 魔法弹窗 ===== -->
 <div id="magic-overlay" onclick="if(event.target===this)closeMagic()">
   <div id="magic-modal">
@@ -1239,6 +1341,7 @@ $('btn-story').onclick = () => openModal('story');
 $('btn-settings').onclick = () => openModal('settings');
 $('btn-clear').onclick = () => clearChat();
 $('btn-refresh').onclick = () => regenerateLast();
+$('btn-wrong').onclick = openWrongModal;
 $('btn-surprise').onclick = surpriseMe;
 $('btn-image').onclick = () => openModal('image');
 $('btn-vision').onclick = () => openModal('vision');
@@ -1248,6 +1351,8 @@ $('settings-overlay').onclick = () => closeModal('settings');
 $('image-overlay').onclick = () => closeModal('image');
 $('vision-overlay').onclick = () => closeModal('vision');
 $('book-overlay').onclick = () => closeModal('book');
+$('wrong-overlay').onclick = closeWrongModal;
+$('flag-overlay').onclick = closeFlagModal;
 $('story-close').onclick = () => closeModal('story');
 $('settings-close').onclick = () => closeModal('settings');
 $('image-close').onclick = () => closeModal('image');
@@ -2118,8 +2223,156 @@ function closeMagic() {
   var o = document.getElementById('magic-overlay');
   if (o) o.classList.remove('show');
 }
-function escHtml(t) {
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+
+// ====================== 错题本 ======================
+const WRONG_KEY = 'bdy_wrong_' + (localStorage.getItem('bdy_gender') || 'girl');
+const CATS = { math:'🔢 数学', chinese:'📖 语文', english:'🔤 英语', science:'🔬 科学', other:'❓ 其他' };
+
+function getWrongTopics() {
+  try { return JSON.parse(localStorage.getItem(WRONG_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveWrongTopics(list) {
+  localStorage.setItem(WRONG_KEY, JSON.stringify(list));
+}
+function addWrongTopic(cat, q, a) {
+  var list = getWrongTopics();
+  // 避免完全重复
+  if (list.some(function(i){ return i.q === q; })) return false;
+  list.unshift({ id: Date.now(), cat: cat, q: q, a: a || '', t: new Date().toLocaleDateString('zh-CN'), practiced: false });
+  if (list.length > 100) list = list.slice(0, 100);
+  saveWrongTopics(list);
+  return true;
+}
+function removeWrongTopic(id) {
+  var list = getWrongTopics().filter(function(i){ return i.id !== id; });
+  saveWrongTopics(list);
+  renderWrongList();
+}
+function clearAllWrongTopics() {
+  if (!confirm('确定要清空全部错题记录吗？')) return;
+  saveWrongTopics([]);
+  refreshWrongBadge();
+  renderWrongList();
+  showToast('已清空');
+}
+function markPracticed(id) {
+  var list = getWrongTopics();
+  list.forEach(function(i){ if (i.id === id) i.practiced = true; });
+  saveWrongTopics(list);
+  refreshWrongBadge();
+  renderWrongList();
+}
+
+function refreshWrongBadge() {
+  try {
+    var k = 'bdy_wrong_' + localStorage.getItem('bdy_gender');
+    var raw = JSON.parse(localStorage.getItem(k) || '[]');
+    var un = raw.filter(function(i){ return !i.practiced; }).length;
+    var badge = document.getElementById('wrong-count');
+    if (badge) {
+      if (un > 0) {
+        badge.textContent = un > 9 ? '9+' : un;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  } catch(e) {}
+}
+function renderWrongList() {
+  var list = getWrongTopics();
+  var empty = document.getElementById('wrong-empty');
+  var listEl = document.getElementById('wrong-list');
+  var practiceBtn = document.getElementById('btn-practice');
+  if (!empty || !listEl) return;
+  if (list.length === 0) {
+    empty.style.display = '';
+    listEl.innerHTML = '';
+    if (practiceBtn) practiceBtn.disabled = true;
+    return;
+  }
+  empty.style.display = 'none';
+  practiceBtn.disabled = false;
+  listEl.innerHTML = list.map(function(i) {
+    return '<div class="wrong-item' + (i.practiced ? ' practiced' : '') + '" data-id="' + i.id + '">' +
+      '<span class="wrong-cat">' + (CATS[i.cat] || i.cat) + '</span>' +
+      '<div class="wrong-info">' +
+        '<div class="wrong-q">' + escHtml(i.q) + '</div>' +
+        (i.a ? '<div class="wrong-a">正确答案：' + escHtml(i.a) + '</div>' : '') +
+        '<div class="wrong-meta">' + i.t + (i.practiced ? ' · 已复习' : '') + '</div>' +
+      '</div>' +
+      '<button class="wrong-del" onclick="removeWrongTopic(' + i.id + ')" title="删除">✕</button>' +
+    '</div>';
+  }).join('');
+}
+
+function openWrongModal() {
+  renderWrongList();
+  var m = document.getElementById('wrong-modal');
+  var o = document.getElementById('wrong-overlay');
+  if (m) m.classList.add('show');
+  if (o) o.classList.add('show');
+}
+function closeWrongModal() {
+  var m = document.getElementById('wrong-modal');
+  var o = document.getElementById('wrong-overlay');
+  if (m) m.classList.remove('show');
+  if (o) o.classList.remove('show');
+}
+
+function openFlagModal() {
+  var q = document.getElementById('flag-question');
+  var a = document.getElementById('flag-answer');
+  if (q) q.value = '';
+  if (a) a.value = '';
+  var m = document.getElementById('flag-modal');
+  var o = document.getElementById('flag-overlay');
+  if (m) m.classList.add('show');
+  if (o) o.classList.add('show');
+  if (q) q.focus();
+}
+function closeFlagModal() {
+  var m = document.getElementById('flag-modal');
+  var o = document.getElementById('flag-overlay');
+  if (m) m.classList.remove('show');
+  if (o) o.classList.remove('show');
+}
+function submitWrongTopic() {
+  var cat = document.getElementById('flag-category');
+  var qEl = document.getElementById('flag-question');
+  var aEl = document.getElementById('flag-answer');
+  var q = qEl && qEl.value.trim();
+  var a = aEl && aEl.value.trim();
+  if (!q) { showToast('请输入题目描述'); return; }
+  var added = addWrongTopic((cat && cat.value) || 'other', q, a);
+  if (added) {
+    closeFlagModal();
+    refreshWrongBadge();
+    showToast('已记到错题本啦 📒');
+  } else {
+    showToast('这道题已经记过了');
+  }
+}
+
+// AI复习模式：用错题本来引导练习
+function practiceWeakAreas() {
+  var list = getWrongTopics();
+  var unmastered = list.filter(function(i){ return !i.practiced; });
+  if (unmastered.length === 0 && list.length > 0) {
+    showToast('太棒了！全部复习完了 🌟');
+    return;
+  }
+  if (list.length === 0) { showToast('先加几道错题吧'); return; }
+  closeWrongModal();
+  // 取最近3道未掌握的错题作为复习起点
+  var review = unmastered.slice(0, 3);
+  var context = review.map(function(i){ return '【' + (CATS[i.cat] || i.cat) + '】' + i.q + (i.a ? '（答案：' + i.a + '）' : ''); }).join('\n');
+  addMsg('user', '我要复习错题：\n' + context);
+  scrollToBottom();
+  // 触发AI回复
+  var input = document.getElementById('chat-input');
+  if (input) input.value = '复习一下上面这些题';
+  document.getElementById('send-btn').click();
 }
 
 
@@ -2341,6 +2594,12 @@ __SEARCH:（用一句话描述你要搜索的内容）
 - **批判性思考**：遇到矛盾信息时指出问题，不盲目附和
 - **结构化表达**：长回答用分段、小标题或序号，让逻辑清晰
 
+★ 错题本与薄弱点追踪：
+用户在"错题本"里记录了还没掌握的题目。复习时你可以：
+- 主动提起用户的薄弱点："上次这个类型好像卡住了，要不要再试一次？"
+- 出类似题目让用户练习，而不是直接给答案
+- 用户做对了就鼓励，做错了就耐心讲解
+${(function(){try{var k='bdy_wrong_'+localStorage.getItem('bdy_gender');var raw=JSON.parse(localStorage.getItem(k)||'[]');var un=raw.filter(function(i){return !i.practiced;});if(un.length===0)return '';var cats={math:'数学',chinese:'语文',english:'英语',science:'科学',other:'其他'};var byCat={};un.forEach(function(i){byCat[cats[i.cat]||'其他']=(byCat[cats[i.cat]||'其他']||0)+1;});var parts=Object.keys(byCat).map(function(c){return c+'('+byCat[c]+'道)';});return '\n【用户当前薄弱点】'+parts.join('、')+'，共'+un.length+'道未掌握。\n';}catch(e){return '';}})()}
 其他严格要求：
 - 永远用中文回复
 - 语气和内容深度要符合${grade}年级的认知水平
@@ -2376,6 +2635,28 @@ async function sendMessage() {
   input.style.height = 'auto';
 
   addMsg('user', text);
+
+  // 自动检测"加到错题本" / "标记为错题"
+  if (text.match(/加到错题本|标记为错题|这题我不会|记到错题本|这题记下来/)) {
+    var lastAi = null;
+    try {
+      var hist = JSON.parse(localStorage.getItem('bdy_history_' + STATE.gender) || '[]');
+      for (var hi = hist.length - 1; hi >= 0; hi--) {
+        if (hist[hi].role === 'ai') { lastAi = hist[hi].content; break; }
+      }
+    } catch(e) {}
+    if (lastAi) {
+      var cat = 'other';
+      if (lastAi.match(/\d[\+\-\*\/\^\(\)]|\d\.\d|÷|乘|除|加|减|乘方|平方|立方|角|周长|面积|体积|分数|小数/)) cat = 'math';
+      else if (lastAi.match(/单词|英语|英文|spell|English|word/i)) cat = 'english';
+      else if (lastAi.match(/生字|拼音|组词|古诗|课文|阅读|写作/)) cat = 'chinese';
+      else if (lastAi.match(/科学|物理|化学|生物|地理|实验/)) cat = 'science';
+      var q = lastAi.replace(/\n/g,' ').substring(0, 200);
+      var qText = text.replace(/加到错题本|标记为错题|这题我不会|记到错题本|这题记下来/,'').trim() || q;
+      addWrongTopic(cat, qText, '');
+      setTimeout(function() { showToast('已记到错题本啦 📒'); }, 500);
+    }
+  }
 
   // 老岳：固定回复，不消耗token
   if (STATE.gender === 'laoyue') {
@@ -2727,6 +3008,8 @@ function init() {
 
   // 每日问候
   dailyGreeting();
+  // 错题本徽章
+  refreshWrongBadge();
 }
 init();
 
