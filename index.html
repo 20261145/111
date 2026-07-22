@@ -888,6 +888,76 @@
       0%,100% { box-shadow: 0 0 0 0 rgba(102,126,234,0.4); }
       50% { box-shadow: 0 0 0 8px rgba(102,126,234,0); }
     }
+    /* ===== 学习小组 ===== */
+    #group-modal { max-width: 440px; }
+    .group-body, .qbank-body { padding: 12px 20px 8px; max-height: 60vh; overflow-y: auto; }
+    .group-footer { padding: 10px 20px 16px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .group-footer button { padding: 9px 18px; border: none; border-radius: 20px; font-size: 14px; cursor: pointer; }
+    .group-join-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .group-join-row input { flex: 1; padding: 9px 14px; border: 1.5px solid #E0E4F0; border-radius: 12px; font-size: 15px; letter-spacing: 3px; text-transform: uppercase; background: #FAFAFA; }
+    .group-join-row input:focus { outline: none; border-color: #667EEA; }
+    .group-code-display { text-align: center; padding: 16px 0 8px; }
+    .group-code-display .code { font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #667EEA; background: #EEF2FF; border-radius: 12px; padding: 12px 20px; display: inline-block; margin-bottom: 8px; }
+    .group-code-display .hint { font-size: 12px; color: #aaa; }
+    .group-qr { text-align: center; margin: 8px 0; }
+    .group-qr img { border-radius: 12px; border: 1px solid #eee; }
+    .group-info { text-align: center; padding: 8px 0; }
+    .group-members { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
+    .member-chip { background: #E8ECFF; color: #667EEA; border-radius: 20px; padding: 3px 10px; font-size: 12px; }
+    .group-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .group-action-btn { width: 100%; padding: 12px; border: none; border-radius: 14px; font-size: 15px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .group-action-btn:active { transform: scale(0.97); }
+    .btn-g-create { background: linear-gradient(135deg, #667EEA, #764BA2); color: white; }
+    .btn-g-join { background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; }
+    .btn-g-qbank { background: linear-gradient(135deg, #F59E0B, #D97706); color: white; }
+    .btn-g-duel { background: linear-gradient(135deg, #EF4444, #DC2626); color: white; }
+    .btn-g-leave { background: #FFF3F3; color: #EF4444; border: 1.5px solid #FECACA; }
+    .in-group-badge { text-align: center; background: #EEF2FF; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+    .in-group-badge .gname { font-size: 15px; font-weight: 700; color: #667EEA; }
+    .in-group-badge .gmember { font-size: 12px; color: #888; margin-top: 2px; }
+    /* ===== 共享题库 ===== */
+    .qbank-add-bar { padding: 10px 20px; border-bottom: 1px solid #f0f0f0; }
+    .qbank-list { display: flex; flex-direction: column; gap: 10px; padding: 10px 0; }
+    .qbank-item { background: #F8F9FF; border-radius: 14px; padding: 12px 14px; border-left: 4px solid #F59E0B; }
+    .qbank-item .qbank-cat { font-size: 11px; background: #FEF3C7; color: #D97706; padding: 2px 8px; border-radius: 8px; }
+    .qbank-item .qbank-q { font-size: 14px; color: #333; line-height: 1.5; margin-top: 6px; }
+    .qbank-item .qbank-a { font-size: 12px; color: #888; margin-top: 3px; }
+    .qbank-item .qbank-meta { font-size: 11px; color: #bbb; margin-top: 4px; }
+    .qbank-item .qbank-del { background: none; border: none; cursor: pointer; font-size: 15px; color: #ccc; }
+    .qbank-item .qbank-del:hover { color: #FF6B6B; }
+    .qbank-empty { text-align: center; padding: 20px 0; }
+    /* ===== 知识对战 ===== */
+    .duel-body { padding: 12px 20px 8px; min-height: 200px; }
+    .duel-start { text-align: center; padding: 20px 0; }
+    .duel-start h3 { font-size: 17px; margin: 12px 0 6px; }
+    .duel-start p { font-size: 13px; color: #888; }
+    .duel-q-card { background: #F8F9FF; border-radius: 16px; padding: 20px 16px; margin-bottom: 12px; border: 1.5px solid #E8ECFF; }
+    .duel-q-card .q-num { font-size: 12px; color: #667EEA; font-weight: 600; margin-bottom: 8px; }
+    .duel-q-card .q-text { font-size: 15px; line-height: 1.6; color: #333; }
+    .duel-options { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+    .duel-opt { padding: 12px 16px; border: 1.5px solid #E0E4F0; border-radius: 12px; background: white; font-size: 14px; cursor: pointer; text-align: left; transition: all 0.2s; }
+    .duel-opt:hover { border-color: #667EEA; background: #EEF2FF; }
+    .duel-opt.correct { background: #D1FAE5; border-color: #10B981; color: #065F46; }
+    .duel-opt.wrong { background: #FEE2E2; border-color: #EF4444; color: #991B1B; }
+    .duel-opt.selected { border-color: #667EEA; background: #EEF2FF; }
+    .duel-timer { text-align: center; font-size: 28px; font-weight: 800; color: #667EEA; margin-bottom: 12px; font-variant-numeric: tabular-nums; }
+    .duel-timer.urgent { color: #EF4444; animation: timerPulse 0.5s ease-in-out infinite alternate; }
+    @keyframes timerPulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+    .duel-result { text-align: center; padding: 10px 0; }
+    .duel-result .score-big { font-size: 64px; font-weight: 900; color: #667EEA; line-height: 1; }
+    .duel-result .score-label { font-size: 14px; color: #888; margin-top: 4px; }
+    .duel-result .score-stars { font-size: 32px; margin: 8px 0; }
+    .duel-review { margin-top: 16px; text-align: left; }
+    .duel-review-item { background: #f8f9ff; border-radius: 12px; padding: 12px; margin-bottom: 8px; border-left: 3px solid #667EEA; }
+    .duel-review-item.correct-rev { border-left-color: #10B981; }
+    .duel-review-item.wrong-rev { border-left-color: #EF4444; }
+    .duel-review-item .rev-q { font-size: 13px; color: #555; }
+    .duel-review-item .rev-a { font-size: 12px; margin-top: 4px; }
+    .duel-review-item .rev-ur { font-size: 12px; color: #EF4444; margin-top: 2px; }
+    .primary-btn { background: linear-gradient(135deg, #667EEA, #764BA2); color: white; border: none; border-radius: 20px; padding: 9px 18px; font-size: 14px; cursor: pointer; font-weight: 600; }
+    .primary-btn:active { transform: scale(0.97); }
+    .ghost-btn { background: #f0f0f0; color: #666; border: none; border-radius: 20px; padding: 9px 18px; font-size: 14px; cursor: pointer; }
+    .ghost-btn:hover { background: #e0e0e0; }
   </style>
 </head>
 <body>
@@ -901,6 +971,7 @@
     <span id="streak-badge" style="display:none;font-size:11px;background:linear-gradient(135deg,#FFB84D,#FF8A65);color:#fff;padding:2px 8px;border-radius:10px;flex-shrink:0;white-space:nowrap"></span>
   </div>
   <button class="header-btn" id="btn-wrong" title="错题本">📒<span id="wrong-count" style="display:none;font-size:10px;position:absolute;top:-2px;right:-2px;background:#FF6B6B;color:#fff;border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;font-weight:700"></span></button>
+  <button class="header-btn" id="btn-group" title="学习小组">👥</button>
   <button class="header-btn" id="btn-surprise" title="变个魔法">✨</button>
   <button class="header-btn" id="btn-image" title="AI生图">🎨</button>
   <button class="header-btn" id="btn-vision" title="识图">👁️</button>
@@ -1257,7 +1328,81 @@
   </div>
 </div>
 
-<script>
+<!-- ===== 学习小组弹窗 ===== -->
+<div class="modal-overlay" id="group-overlay"></div>
+<div class="modal" id="group-modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">👥 学习小组</div>
+  <div class="group-body" id="group-body">
+    <!-- 动态填充 -->
+  </div>
+  <div class="group-footer" id="group-footer">
+    <!-- 动态填充 -->
+  </div>
+</div>
+
+<!-- ===== 共享题库弹窗 ===== -->
+<div class="modal-overlay" id="qbank-overlay"></div>
+<div class="modal" id="qbank-modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">📚 共享题库</div>
+  <div class="qbank-add-bar" id="qbank-add-bar">
+    <button class="primary-btn" onclick="openAddQuestion()" style="width:100%;padding:10px;font-size:14px;border-radius:12px;">➕ 贡献一道题</button>
+  </div>
+  <div class="qbank-body" id="qbank-body">
+    <div class="qbank-empty" id="qbank-empty">
+      <div style="font-size:40px;margin-bottom:10px">📝</div>
+      <div style="font-size:14px;color:#999">还没有共享的题目</div>
+      <div style="font-size:13px;color:#bbb;margin-top:4px">快来贡献第一道吧！</div>
+    </div>
+    <div class="qbank-list" id="qbank-list"></div>
+  </div>
+  <div class="group-footer">
+    <button class="ghost-btn" onclick="closeQBank()">关闭</button>
+  </div>
+</div>
+
+<!-- ===== 加题弹窗 ===== -->
+<div class="modal-overlay" id="qadd-overlay"></div>
+<div class="modal" id="qadd-modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">➕ 贡献题目</div>
+  <div class="flag-body">
+    <div style="font-size:13px;color:#888;margin-bottom:10px">把你在学习中发现的好题/难题分享给全组</div>
+    <div style="margin-bottom:10px">
+      <div class="field-label">题目类型</div>
+      <select id="qadd-cat" style="width:100%;padding:8px 12px;border-radius:12px;border:1.5px solid #E0E4F0;font-size:14px;background:#FAFAFA">
+        <option value="math">🔢 数学</option><option value="chinese">📖 语文</option>
+        <option value="english">🔤 英语</option><option value="science">🔬 科学</option>
+        <option value="puzzle">🧩 趣味题</option><option value="other">❓ 其他</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <div class="field-label">题目（完整描述）</div>
+      <textarea id="qadd-q" rows="3" style="width:100%;padding:8px 12px;border-radius:12px;border:1.5px solid #E0E4F0;font-size:14px;resize:none;background:#FAFAFA" placeholder="把题目完整写下来，方便其他人理解"></textarea>
+    </div>
+    <div style="margin-bottom:4px">
+      <div class="field-label">答案（选填，会员可参考）</div>
+      <textarea id="qadd-a" rows="1" style="width:100%;padding:8px 12px;border-radius:12px;border:1.5px solid #E0E4F0;font-size:14px;resize:none;background:#FAFAFA" placeholder="选填，帮助其他人验证"></textarea>
+    </div>
+  </div>
+  <div class="group-footer">
+    <button class="primary-btn" onclick="submitSharedQuestion()">📤 提交共享</button>
+    <button class="ghost-btn" onclick="closeQAdd()">取消</button>
+  </div>
+</div>
+
+<!-- ===== 知识对战弹窗 ===== -->
+<div class="modal-overlay" id="duel-overlay"></div>
+<div class="modal" id="duel-modal">
+  <div class="modal-handle"></div>
+  <div class="modal-title">⚔️ 知识对战</div>
+  <div class="duel-body" id="duel-body"><!-- 动态 --></div>
+  <div class="group-footer" id="duel-footer"><!-- 动态 --></div>
+</div>
+
+
+  <script>
 // ====================== 全局错误捕获（方便手机/pad 排查）======================
 // 任何 JS 报错都会在页面上方以红色面板显示，方便看到具体错误原因
 (function() {
@@ -1327,6 +1472,341 @@ function countWordsEn(s) {
   return (s.trim().match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) || []).length;
 }
 
+// ====================== 学习小组 ======================
+var GROUP_KEY = 'bdy_group';
+var QBANK_KEY = 'bdy_qbank_';
+var GROUP_MEMBERS = ['小明','小红','小强','小美','小亮','小华','小杰','小雪','小涛','小月'];
+var GROUP_COLORS = ['#667EEA','#F59E0B','#4CAF50','#EF4444','#8B5CF6','#EC4899','#06B6D4','#F97316'];
+
+function getGroupData() { try { return JSON.parse(localStorage.getItem(GROUP_KEY)||'null'); } catch(e){ return null; } }
+function setGroupData(d) { localStorage.setItem(GROUP_KEY, JSON.stringify(d)); }
+function getGroupCode() { var g = getGroupData(); return g ? g.code : null; }
+function getGroupName() { var g = getGroupData(); return g ? g.name : ''; }
+function getQBank() { var c = getGroupCode(); if(!c) return []; try { return JSON.parse(localStorage.getItem(QBANK_KEY+c)||'[]'); } catch(e){ return []; } }
+function setQBank(arr) { var c = getGroupCode(); if(c) localStorage.setItem(QBANK_KEY+c, JSON.stringify(arr)); }
+
+function makeCode() {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var r = '';
+  for (var i = 0; i < 6; i++) r += chars[Math.floor(Math.random()*chars.length)];
+  return r;
+}
+function makeGroupName() {
+  var adj = ['快乐','智慧','阳光','勇敢','梦想','星光','彩虹','飞扬'];
+  var noun = ['学习组','学霸队','挑战团','互助班','成长圈','进步队'];
+  return adj[Math.floor(Math.random()*adj.length)] + noun[Math.floor(Math.random()*noun.length)];
+}
+
+function openGroupModal() {
+  var g = getGroupData();
+  var body = document.getElementById('group-body');
+  var footer = document.getElementById('group-footer');
+  if (!body) return;
+  if (!g) {
+    // 未入组：显示创建/加入界面
+    body.innerHTML = '<div class="group-actions">' +
+      '<button class="group-action-btn btn-g-create" onclick="createGroup()">🏆 创建学习小组</button>' +
+      '<div style="text-align:center;color:#bbb;font-size:12px;margin:4px 0">— 或者加入已有小组 —</div>' +
+      '<div class="group-join-row"><input id="join-code" maxlength="6" placeholder="输入小组码（如A3B7C2）" /></div>' +
+      '<button class="group-action-btn btn-g-join" onclick="joinGroup()">🚀 加入小组</button>' +
+    '</div>';
+    footer.innerHTML = '<button class="ghost-btn" onclick="closeGroupModal()">关闭</button>';
+  } else {
+    // 已入组：显示小组信息 + 操作
+    var members = g.members || [];
+    var memberChips = members.map(function(m,i){ return '<span class="member-chip" style="background:'+(GROUP_COLORS[i%GROUP_COLORS.length])+'22;color:'+GROUP_COLORS[i%GROUP_COLORS.length]+'">'+escHtml(m)+'</span>'; }).join('');
+    var qrUrl = location.origin + location.pathname + '?join=' + g.code;
+    body.innerHTML = '<div class="in-group-badge"><div class="gname">🏆 ' + escHtml(g.name) + '</div><div class="gmember">共 ' + members.length + ' 名成员 · 小组码 ' + g.code + '</div></div>' +
+      '<div class="group-members">' + memberChips + '</div>' +
+      '<div class="group-code-display">' +
+        '<div>分享小组码，让同学加入：</div>' +
+        '<div class="code">' + g.code + '</div>' +
+        '<div class="hint">截图发给同学，或让他们扫码</div>' +
+      '</div>' +
+      '<div class="group-qr" id="group-qr"></div>' +
+      '<div class="group-actions">' +
+        '<button class="group-action-btn btn-g-qbank" onclick="openGroupQBank()">📚 共享题库（' + getQBank().length + '道）</button>' +
+        '<button class="group-action-btn btn-g-duel" onclick="startDuel()">⚔️ 知识对战</button>' +
+        '<button class="group-action-btn btn-g-leave" onclick="leaveGroup()">🚪 退出小组</button>' +
+      '</div>';
+    footer.innerHTML = '<button class="ghost-btn" onclick="closeGroupModal()">关闭</button>';
+    // 生成二维码
+    setTimeout(function(){
+      var qrDiv = document.getElementById('group-qr');
+      if (qrDiv) {
+        qrDiv.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(qrUrl) + '&bgcolor=FFFFFF&color=4F46E5" width="160" height="160" alt="小组二维码" style="border-radius:12px">';
+      }
+    }, 50);
+  }
+  openModal('group');
+}
+function closeGroupModal() { closeModal('group'); }
+function checkJoinParam() {
+  var params = new URLSearchParams(location.search);
+  var joinCode = params.get('join');
+  if (joinCode && !getGroupData()) {
+    setTimeout(function() {
+      var codeEl = document.getElementById('join-code');
+      if (codeEl) {
+        codeEl.value = joinCode.toUpperCase();
+        joinGroup();
+      }
+    }, 800);
+  }
+}
+
+function createGroup() {
+  var code = makeCode();
+  var myName = prompt('给自己起个昵称（同学会看到）：', '小' + ['明','红','强','美','亮','华','杰','雪'][Math.floor(Math.random()*8)]);
+  if (!myName || !myName.trim()) return;
+  myName = myName.trim().substring(0, 10);
+  var name = makeGroupName();
+  var g = { code: code, name: name, owner: myName, members: [myName], created: Date.now() };
+  setGroupData(g);
+  showToast('小组「' + name + '」创建成功！');
+  refreshGroupBadge();
+  openGroupModal();
+}
+
+function joinGroup() {
+  var code = document.getElementById('join-code');
+  var codeVal = (code ? code.value.trim().toUpperCase() : '');
+  if (!codeVal || codeVal.length < 4) { showToast('请输入正确的小组码'); return; }
+  var myName = prompt('给自己起个昵称（同学会看到）：', '小' + ['明','红','强','美','亮','华','杰','雪'][Math.floor(Math.random()*8)]);
+  if (!myName || !myName.trim()) return;
+  myName = myName.trim().substring(0, 10);
+  var g = { code: codeVal, name: '学习小组', owner: '', members: [myName], created: Date.now() };
+  setGroupData(g);
+  showToast('加入小组成功！你是第' + g.members.length + '名成员');
+  refreshGroupBadge();
+  openGroupModal();
+}
+
+function leaveGroup() {
+  if (!confirm('确定要退出当前学习小组吗？')) return;
+  localStorage.removeItem(GROUP_KEY);
+  showToast('已退出小组');
+  refreshGroupBadge();
+  closeGroupModal();
+}
+
+function refreshGroupBadge() {
+  var btn = document.getElementById('btn-group');
+  if (!btn) return;
+  var g = getGroupData();
+  var existing = btn.querySelector('.group-dot');
+  if (g) {
+    if (!existing) {
+      var dot = document.createElement('span');
+      dot.className = 'group-dot';
+      dot.style.cssText = 'position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:#10B981;border-radius:50%;border:2px solid white';
+      btn.style.position = 'relative';
+      btn.appendChild(dot);
+    }
+  } else {
+    if (existing) existing.remove();
+  }
+}
+
+// ====================== 共享题库 ======================
+function openGroupQBank() {
+  closeGroupModal();
+  var body = document.getElementById('qbank-body');
+  var empty = document.getElementById('qbank-empty');
+  var list = document.getElementById('qbank-list');
+  var qbank = getQBank();
+  if (qbank.length === 0) {
+    empty.style.display = '';
+    list.innerHTML = '';
+  } else {
+    empty.style.display = 'none';
+    var cats = { math:'🔢',chinese:'📖',english:'🔤',science:'🔬',puzzle:'🧩',other:'❓' };
+    var myName = getGroupData() ? getGroupData().members[0] : '我';
+    list.innerHTML = qbank.map(function(q, i) {
+      return '<div class="qbank-item">' +
+        '<span class="qbank-cat">' + (cats[q.cat]||'❓') + ' ' + (q.catName||'') + '</span>' +
+        '<div class="qbank-q">' + escHtml(q.q) + '</div>' +
+        (q.a ? '<div class="qbank-a">答案：' + escHtml(q.a) + '</div>' : '') +
+        '<div class="qbank-meta">' + escHtml(q.author||myName) + ' · ' + q.time + ' · ' + (q.likes||0) + '👍</div>' +
+      '</div>';
+    }).join('');
+  }
+  openModal('qbank');
+}
+function closeQBank() { closeModal('qbank'); }
+
+function openAddQuestion() {
+  var q = document.getElementById('qadd-q');
+  var a = document.getElementById('qadd-a');
+  if (q) q.value = '';
+  if (a) a.value = '';
+  openModal('qadd');
+  if (q) q.focus();
+}
+function closeQAdd() { closeModal('qadd'); }
+
+function submitSharedQuestion() {
+  var catEl = document.getElementById('qadd-cat');
+  var qEl = document.getElementById('qadd-q');
+  var aEl = document.getElementById('qadd-a');
+  var cat = catEl ? catEl.value : 'other';
+  var q = qEl ? qEl.value.trim() : '';
+  var a = aEl ? aEl.value.trim() : '';
+  if (!q) { showToast('请输入题目'); return; }
+  var g = getGroupData();
+  var author = g ? g.members[0] : '匿名';
+  var catNames = { math:'数学',chinese:'语文',english:'英语',science:'科学',puzzle:'趣味题',other:'其他' };
+  var item = { id: Date.now(), cat: cat, catName: catNames[cat]||'其他', q: q, a: a, author: author, time: new Date().toLocaleDateString('zh-CN'), likes: 0 };
+  var bank = getQBank();
+  bank.unshift(item);
+  if (bank.length > 200) bank = bank.slice(0, 200);
+  setQBank(bank);
+  closeQAdd();
+  showToast('题目已共享给全组！📤');
+  openGroupQBank();
+}
+
+// ====================== 知识对战 ======================
+var DUEL = { questions: [], current: 0, answers: [], score: 0, startTime: 0 };
+
+function startDuel() {
+  closeGroupModal();
+  var grade = STATE.grade || 5;
+  var promptText = '你是一个出题老师。请出3道适合' + grade + '年级学生的趣味知识题（涵盖数学、语文、英语、科学等学科，题目要有趣、有挑战性，不要太简单）。\n要求：3道题各不相关，涵盖不同领域。\n每道题必须包含4个选项（A/B/C/D），其中1个是正确答案。\n直接输出JSON数组格式，不要任何解释，不要思考过程，不要reasoning_content字段，格式如下：\n[{"q":"题目文字","opts":["A. 选项1","B. 选项2","C. 选项3","D. 选项4"],"ans":"B","exp":"简要解释"},...]';
+  var body = document.getElementById('duel-body');
+  var footer = document.getElementById('duel-footer');
+  body.innerHTML = '<div class="duel-start"><div style="font-size:56px">⚔️</div><h3>知识对战</h3><p>和AI来一场3题限时赛！<br>每题30秒，看看你能答对几道？</p></div>';
+  footer.innerHTML = '<button class="group-action-btn btn-g-duel" onclick="generateDuelQs(' + grade + ')">🎯 开始对战</button><button class="ghost-btn" onclick="closeDuel()">取消</button>';
+  openModal('duel');
+}
+
+function generateDuelQs(grade) {
+  var body = document.getElementById('duel-body');
+  body.innerHTML = '<div class="duel-start"><div style="font-size:40px">🤔</div><p style="margin-top:12px;font-size:14px;color:#888">AI正在出题...</p><div class="magic-dots" style="justify-content:center"><span></span><span></span><span></span></div></div>';
+  var msgs = [{ role:'system', content:'你是出题助手，只输出JSON数组，不输出其他任何文字。' },{ role:'user', content:'出3道适合' + grade + '年级趣味知识题，每道4选项，JSON数组格式：[{"q":"题目","opts":["A. 选项","B. 选项","C. 选项","D. 选项"],"ans":"B","exp":"解释"}]' }];
+  zhipuRequest(msgs, 'glm-4-flash', 8000).then(function(data) {
+    var raw = extractContent(data);
+    var qs = [];
+    try {
+      // 去掉markdown代码块
+      raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+      qs = JSON.parse(raw);
+    } catch(e) {
+      try {
+        var m = raw.match(/\[\s*\{[\s\S]+\}\s*\]/);
+        if (m) qs = JSON.parse(m[0]);
+      } catch(e2) {}
+    }
+    if (!qs || !qs.length) { qs = getFallbackDuelQs(grade); }
+    DUEL.questions = qs.slice(0,3);
+    DUEL.current = 0;
+    DUEL.answers = [];
+    DUEL.score = 0;
+    DUEL.startTime = Date.now();
+    renderDuelQ();
+  }).catch(function() {
+    DUEL.questions = getFallbackDuelQs(grade);
+    DUEL.current = 0; DUEL.answers = []; DUEL.score = 0; DUEL.startTime = Date.now();
+    renderDuelQ();
+  });
+}
+
+function getFallbackDuelQs(grade) {
+  return [
+    { q:'1+2+3+...+100 等于多少？', opts:['A. 5000','B. 5050','C. 5100','D. 4950'], ans:'B', exp:'高斯算法：(1+100)×100÷2=5050' },
+    { q:'"春眠不觉晓"的下一句是？', opts:['A. 处处闻啼鸟','B. 花落知多少','C. 夜来风雨声','D. 鸟鸣山更幽'], ans:'A', exp:'孟浩然《春晓》：春眠不觉晓，处处闻啼鸟' },
+    { q:'英文26个字母中，有几个是元音字母？', opts:['A. 4个','B. 5个','C. 6个','D. 7个'], ans:'B', exp:'A/E/I/O/U，共5个元音字母' }
+  ];
+}
+
+function renderDuelQ() {
+  if (DUEL.current >= DUEL.questions.length) { showDuelResult(); return; }
+  var q = DUEL.questions[DUEL.current];
+  var body = document.getElementById('duel-body');
+  var footer = document.getElementById('duel-footer');
+  var secs = 30;
+  var timerId;
+  body.innerHTML = '<div class="duel-timer" id="duel-timer">' + secs + '秒</div>' +
+    '<div class="duel-q-card">' +
+      '<div class="q-num">第 ' + (DUEL.current+1) + ' / ' + DUEL.questions.length + ' 题</div>' +
+      '<div class="q-text">' + escHtml(q.q) + '</div>' +
+    '</div>' +
+    '<div class="duel-options" id="duel-opts">' +
+      q.opts.map(function(o,i){ return '<button class="duel-opt" data-idx="'+i+'" onclick="answerDuel('+i+',this)">'+escHtml(o)+'</button>'; }).join('') +
+    '</div>';
+  footer.innerHTML = '';
+  // 倒计时
+  timerId = setInterval(function() {
+    secs--;
+    var el = document.getElementById('duel-timer');
+    if (el) { el.textContent = secs + '秒'; el.className = 'duel-timer' + (secs <= 10 ? ' urgent' : ''); }
+    if (secs <= 0) {
+      clearInterval(timerId);
+      // 超时视为答错
+      DUEL.answers.push({ selected: -1, correct: false });
+      showAnswerReveal(q, -1);
+    }
+  }, 1000);
+  body.dataset.timerId = timerId;
+}
+
+function answerDuel(idx, btn) {
+  var body = document.getElementById('duel-body');
+  if (body.dataset.answered) return;
+  body.dataset.answered = '1';
+  clearInterval(parseInt(body.dataset.timerId || '0'));
+  var q = DUEL.questions[DUEL.current];
+  var correct = q.opts[idx].startsWith(q.ans + '.');
+  if (correct) DUEL.score++;
+  DUEL.answers.push({ selected: idx, correct: correct });
+  showAnswerReveal(q, idx);
+}
+
+function showAnswerReveal(q, selectedIdx) {
+  var body = document.getElementById('duel-body');
+  var footer = document.getElementById('duel-footer');
+  var opts = document.querySelectorAll('.duel-opt');
+  opts.forEach(function(b, i) {
+    b.classList.remove('selected','correct','wrong');
+    b.onclick = null;
+    if (q.opts[i].startsWith(q.ans + '.')) b.classList.add('correct');
+    else if (i === selectedIdx && selectedIdx >= 0) b.classList.add('wrong');
+  });
+  footer.innerHTML = '<div style="font-size:13px;color:#888;text-align:center;flex:1">💡 ' + escHtml(q.exp) + '</div>' +
+    '<button class="primary-btn" onclick="nextDuelQ()">' + (DUEL.current < DUEL.questions.length - 1 ? '下一题 ➜' : '查看结果 ⚔️') + '</button>';
+}
+
+function nextDuelQ() {
+  DUEL.current++;
+  renderDuelQ();
+}
+
+function showDuelResult() {
+  var body = document.getElementById('duel-body');
+  var footer = document.getElementById('duel-footer');
+  var s = DUEL.score, t = DUEL.questions.length;
+  var pct = Math.round(s/t*100);
+  var stars = pct >= 100 ? '🌟🌟🌟' : pct >= 66 ? '🌟🌟' : pct >= 33 ? '🌟' : '💪';
+  var msgs = DUEL.questions.map(function(q, i) {
+    var ans = DUEL.answers[i];
+    var isCorrect = ans && ans.correct;
+    return '<div class="duel-review-item ' + (isCorrect ? 'correct-rev' : 'wrong-rev') + '">' +
+      '<div class="rev-q">' + (i+1) + '. ' + escHtml(q.q) + ' <span style="font-size:11px">【' + (isCorrect ? '✅ 正确' : '❌ 错误') + '】</span></div>' +
+      '<div class="rev-a">正确答案：' + escHtml(q.ans) + '. ' + escHtml(q.opts.find(function(o){ return o.startsWith(q.ans+'.'); })) + '</div>' +
+      (!isCorrect && ans && ans.selected >= 0 ? '<div class="rev-ur">你的答案：' + escHtml(q.opts[ans.selected]) + '</div>' : '') +
+    '</div>';
+  }).join('');
+  body.innerHTML = '<div class="duel-result">' +
+      '<div class="score-big">' + s + '/' + t + '</div>' +
+      '<div class="score-stars">' + stars + '</div>' +
+      '<div class="score-label">' + (pct>=66?'太厉害了！':'加油！再多练习就能更厉害！') + '</div>' +
+    '</div>' +
+    '<div class="duel-review">' + msgs + '</div>';
+  footer.innerHTML = '<button class="primary-btn" onclick="startDuel()">🔄 再来一局</button><button class="ghost-btn" onclick="closeDuel()">关闭</button>';
+}
+
+function closeDuel() { closeModal('duel'); }
+
 // ====================== Modal 控制 ======================
 function openModal(id) {
   $(id + '-overlay').classList.add('show');
@@ -1342,6 +1822,7 @@ $('btn-settings').onclick = () => openModal('settings');
 $('btn-clear').onclick = () => clearChat();
 $('btn-refresh').onclick = () => regenerateLast();
 $('btn-wrong').onclick = openWrongModal;
+$('btn-group').onclick = openGroupModal;
 $('btn-surprise').onclick = surpriseMe;
 $('btn-image').onclick = () => openModal('image');
 $('btn-vision').onclick = () => openModal('vision');
@@ -1353,6 +1834,10 @@ $('vision-overlay').onclick = () => closeModal('vision');
 $('book-overlay').onclick = () => closeModal('book');
 $('wrong-overlay').onclick = closeWrongModal;
 $('flag-overlay').onclick = closeFlagModal;
+$('group-overlay').onclick = closeGroupModal;
+$('qbank-overlay').onclick = closeQBank;
+$('qadd-overlay').onclick = closeQAdd;
+$('duel-overlay').onclick = closeDuel;
 $('story-close').onclick = () => closeModal('story');
 $('settings-close').onclick = () => closeModal('settings');
 $('image-close').onclick = () => closeModal('image');
@@ -2600,6 +3085,7 @@ __SEARCH:（用一句话描述你要搜索的内容）
 - 出类似题目让用户练习，而不是直接给答案
 - 用户做对了就鼓励，做错了就耐心讲解
 ${(function(){try{var k='bdy_wrong_'+localStorage.getItem('bdy_gender');var raw=JSON.parse(localStorage.getItem(k)||'[]');var un=raw.filter(function(i){return !i.practiced;});if(un.length===0)return '';var cats={math:'数学',chinese:'语文',english:'英语',science:'科学',other:'其他'};var byCat={};un.forEach(function(i){byCat[cats[i.cat]||'其他']=(byCat[cats[i.cat]||'其他']||0)+1;});var parts=Object.keys(byCat).map(function(c){return c+'('+byCat[c]+'道)';});return '\n【用户当前薄弱点】'+parts.join('、')+'，共'+un.length+'道未掌握。\n';}catch(e){return '';}})()}
+${(function(){try{var gk='bdy_group';var g=JSON.parse(localStorage.getItem(gk)||'null');if(!g)return '';var qk='bdy_qbank_'+g.code;var qs=JSON.parse(localStorage.getItem(qk)||'[]');if(qs.length===0)return '\n【学习小组】用户在学习小组「'+g.name+'」中，目前题库暂无题目。\n';var cats={math:'数学',chinese:'语文',english:'英语',science:'科学',puzzle:'趣味题',other:'其他'};var byCat={};qs.forEach(function(q){byCat[cats[q.cat]||'其他']=(byCat[cats[q.cat]||'其他']||0)+1;});var parts=Object.keys(byCat).map(function(c){return c+'('+byCat[c]+'道)';});return '\n【学习小组】用户在学习小组「'+g.name+'」中，共享题库共'+qs.length+'道：'+parts.join('、')+'。\n当用户聊到相关学科时，可以主动提起：「你们小组有人共享了一道关于XXX的题目，要不要试试？」\n';}catch(e){return '';}})()}
 其他严格要求：
 - 永远用中文回复
 - 语气和内容深度要符合${grade}年级的认知水平
@@ -3010,6 +3496,10 @@ function init() {
   dailyGreeting();
   // 错题本徽章
   refreshWrongBadge();
+  // 学习小组徽章
+  refreshGroupBadge();
+  // 检查URL参数加入小组
+  checkJoinParam();
 }
 init();
 
